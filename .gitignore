@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node / VitePress
+site/node_modules/
+site/docs/.vitepress/cache/
+site/docs/.vitepress/dist/
+
+# OS / Editors
+.DS_Store
+Thumbs.db

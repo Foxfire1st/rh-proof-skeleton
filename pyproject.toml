@@ -8,7 +8,9 @@ version = "0.1.0"
 description = "Deterministic Lean skeleton extractor, validator gates, and static explainer compiler for the Riemann Hypothesis formal proof."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "PyYAML>=6.0",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -16,12 +18,14 @@ dev = [
   "ruff>=0.9",
   "pyright>=1.1.390",
   "radon>=6.0",
+  "types-PyYAML>=6.0",
 ]
 
 [project.scripts]
 rh-audit = "rh_pipeline.cli.audit:main"
 rh-extract = "rh_pipeline.cli.extract:main"
 rh-file-size-gate = "rh_pipeline.validate.file_size:main"
+rh-validate = "rh_pipeline.cli.validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

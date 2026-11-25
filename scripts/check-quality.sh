@@ -41,7 +41,7 @@ PY
         return 1
     fi
 
-    for tool in ruff pyright radon pytest; do
+    for tool in ruff pyright radon pytest rh-validate; do
         if [[ ! -x "$bin/$tool" || ! -f "$bin/$tool" ]]; then
             printf 'Missing executable %s. %s\n' "$bin/$tool" "$repair" >&2
             return 1
@@ -74,6 +74,11 @@ check_quality() {
     fi
 
     "$bin/python" -m rh_pipeline.validate.file_size
+    if [[ -n "${RH_MEMORY_ROOT:-}" ]]; then
+        "$bin/rh-validate" --repo . --memory "$RH_MEMORY_ROOT"
+    else
+        "$bin/rh-validate" --repo .
+    fi
     "$bin/pytest"
 }
 

@@ -152,7 +152,7 @@ def toolchain(worktree: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pa
         'from pathlib import Path\nPath("trace").open("a").write("file_size\\n")\n',
     )
     bin_dir = install_fixture_venv(worktree, worktree / "src")
-    for tool in ("ruff", "pyright", "radon", "pytest"):
+    for tool in ("ruff", "pyright", "radon", "pytest", "rh-validate"):
         write_executable(
             bin_dir / tool,
             r"""
@@ -189,8 +189,27 @@ def test_quality_runs_worktree_tools_in_ci_order(
         "pyright ",
         "radon cc src -s -a -n B --output-file=",
         "file_size",
+        "rh-validate --repo .",
         "pytest ",
     ]
+
+
+def test_quality_passes_memory_root_to_rh_validate(
+    worktree: Path,
+    toolchain: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, trace = toolchain
+    memory_dir = tmp_path / "memory-root"
+    memory_dir.mkdir()
+    monkeypatch.setenv("RH_MEMORY_ROOT", str(memory_dir))
+    result = run_script(worktree, "check-quality.sh")
+    assert result.returncode == 0, result.stderr
+    assert (
+        f"rh-validate --repo . --memory {memory_dir}"
+        in trace.read_text(encoding="utf-8").splitlines()
+    )
 
 
 def test_quality_rejects_radon_syntax_error_even_with_zero_status(
@@ -248,7 +267,7 @@ def test_bootstrap_confines_pip_destination(
                 bin="${!#}/bin"
                 mkdir -p "$bin"
                 cp "$0" "$bin/python"
-                for tool in ruff pyright radon pytest; do
+                for tool in ruff pyright radon pytest rh-validate; do
                     cp "$0" "$bin/$tool"
                 done
                 ;;
@@ -319,7 +338,7 @@ def test_bootstrap_replaces_venv_selected_through_symlink(
     site_packages = next((worktree / ".venv").glob("lib/python*/site-packages"))
     seed = tmp_path / "install-seed"
     shutil.copytree(site_packages, seed / "site-packages")
-    for tool in ("ruff", "pyright", "radon", "pytest"):
+    for tool in ("ruff", "pyright", "radon", "pytest", "rh-validate"):
         shutil.copy2(bin_dir / tool, seed)
 
     # Exercise real Python and venv creation without fetching dev dependencies.
@@ -331,7 +350,7 @@ def test_bootstrap_replaces_venv_selected_through_symlink(
         set -eu
         site=(.venv/lib/python*/site-packages)
         cp -R "$INSTALL_SEED/site-packages/." "${site[0]}"
-        for tool in ruff pyright radon pytest; do
+        for tool in ruff pyright radon pytest rh-validate; do
             cp "$INSTALL_SEED/$tool" ".venv/bin/$tool"
         done
         """,

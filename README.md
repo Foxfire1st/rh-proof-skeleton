@@ -31,8 +31,21 @@ Every directory and Python package owns one bounded responsibility:
 
 ## Quality Gates
 
+From the root of each worktree, run the same scripts used in CI.
+
+```sh
+scripts/bootstrap-venv.sh
+scripts/check-quality.sh
+```
+
+Bootstrap creates a worktree-local `.venv` with an editable install. It prefers
+Python 3.12 and accepts a Python 3.12 or newer override through `PYTHON_BIN`.
+Run `scripts/bootstrap-venv.sh --replace` to rebuild the environment.
+
+The runner uses the worktree's environment for these checks.
+
 - Python formatting & linting: `ruff check .` and `ruff format --check .`
 - Strict static typing: `pyright`
-- Complexity visibility: `radon cc src -s -a -n B`
-- File-size rail (300 healthy / 600 watchful / 900 soft / 1200 hard): `python -m rh_pipeline.validate.file_size`
+- Informational complexity report: `radon cc src -s -a -n B`
+- File-size rail (band ceilings at 300, 600, 900 and 1200 lines): `python -m rh_pipeline.validate.file_size`
 - Unit tests: `pytest`

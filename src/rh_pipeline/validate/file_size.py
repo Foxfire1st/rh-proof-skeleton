@@ -18,6 +18,7 @@ from pathlib import Path
 DEFAULT_HARD_LIMIT = 1200
 DEFAULT_SOFT_LIMIT = 900
 DEFAULT_WATCHFUL_LIMIT = 600
+DEFAULT_HEALTHY_LIMIT = 300
 DEFAULT_ROOTS = ("src", "tests")
 
 
@@ -48,6 +49,8 @@ def classify_line_count(
         return "soft-limit-exceeded"
     if lines > watchful_limit:
         return "refactor-pressure"
+    if lines > DEFAULT_HEALTHY_LIMIT:
+        return "watchful"
     return "healthy"
 
 

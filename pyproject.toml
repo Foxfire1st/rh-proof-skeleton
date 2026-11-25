@@ -19,6 +19,7 @@ dev = [
 ]
 
 [project.scripts]
+rh-audit = "rh_pipeline.cli.audit:main"
 rh-file-size-gate = "rh_pipeline.validate.file_size:main"
 
 [tool.setuptools.packages.find]

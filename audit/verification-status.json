@@ -1,0 +1,93 @@
+{
+  "build_status": "unverified-locally",
+  "challenge_sorry_count": 7,
+  "community_verification_notes_sha256": "26bbad4a892d241b19aa9ec05f56c45334a7e73d8650b4b4e18f61e627bf685e",
+  "files_scanned": [
+    "comparator/FormalConjecturesBridge.lean",
+    "comparator/FormalConjecturesChallenge.lean",
+    "comparator/FormalConjecturesSolution.lean",
+    "comparator/FormalConjecturesStatement.lean",
+    "src/Challenge.lean",
+    "src/Main.lean",
+    "src/Statements.lean"
+  ],
+  "lean_toolchain": "leanprover/lean4:v4.37.0-rc1",
+  "mathlib_rev": "31ce06eaadf4a200c0e1407c5f10953cf606b8f8",
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "scan": {
+    "challenge_findings": [
+      {
+        "line": 84,
+        "rel_path": "comparator/FormalConjecturesChallenge.lean",
+        "role": "challenge",
+        "token": "sorry"
+      },
+      {
+        "line": 108,
+        "rel_path": "comparator/FormalConjecturesChallenge.lean",
+        "role": "challenge",
+        "token": "sorry"
+      },
+      {
+        "line": 19,
+        "rel_path": "src/Challenge.lean",
+        "role": "challenge",
+        "token": "sorry"
+      },
+      {
+        "line": 21,
+        "rel_path": "src/Challenge.lean",
+        "role": "challenge",
+        "token": "sorry"
+      },
+      {
+        "line": 23,
+        "rel_path": "src/Challenge.lean",
+        "role": "challenge",
+        "token": "sorry"
+      },
+      {
+        "line": 25,
+        "rel_path": "src/Challenge.lean",
+        "role": "challenge",
+        "token": "sorry"
+      },
+      {
+        "line": 27,
+        "rel_path": "src/Challenge.lean",
+        "role": "challenge",
+        "token": "sorry"
+      }
+    ],
+    "challenge_sorry_count": 7,
+    "files_scanned": [
+      "comparator/FormalConjecturesBridge.lean",
+      "comparator/FormalConjecturesChallenge.lean",
+      "comparator/FormalConjecturesSolution.lean",
+      "comparator/FormalConjecturesStatement.lean",
+      "src/Challenge.lean",
+      "src/Main.lean",
+      "src/Statements.lean"
+    ],
+    "scan_scope": "entry",
+    "solution_findings": []
+  },
+  "scan_scope": "entry",
+  "schema_version": "1.0.0",
+  "solution_forbidden_token_count": 0,
+  "theorem_names": [
+    "riemannHypothesis",
+    "riemannZeta_eq_zero_re",
+    "LFunction_ne_zero_of_half_lt_re",
+    "LFunction_eq_zero_re",
+    "LFunction_eq_zero_re_of_isPrimitive",
+    "RiemannHypothesis.riemannHypothesis",
+    "GRH.generalized_riemann_hypothesis"
+  ],
+  "upstream_commit": "c900e67c2fcd1fdb041685820bbd2b867fbc5a4b",
+  "upstream_static_scan_sha256": "0ed8c54b3bf5fb74cee073060b340abb758e7421bc3117fa48b0b0fa56bd830f"
+}

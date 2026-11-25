@@ -1,0 +1,83 @@
+{
+  "comparator_file_digests": {
+    "comparator/FormalConjecturesBridge.lean": "13e232cc4867a34ff1055c8fac9c4d89427a7ac0f02d7fb840357093cef92e78",
+    "comparator/FormalConjecturesChallenge.lean": "34d4339b5a6cd3076f2d1353e73606d8076c26d708e3c30f0778a6f8a6d800df",
+    "comparator/FormalConjecturesSolution.lean": "b6199dd2a706f9b276d0dc6dcc12a4524e4c9d40a914f8b5b671addbeba09004",
+    "comparator/FormalConjecturesStatement.lean": "5a1fef1cfe7eb37f007feb766ab8b4c56d3b59fb9f7542690d24cae24accb117",
+    "comparator/formal-conjectures-export-targets.txt": "14e21e9ec1bb9578fe9b53bc6532b23e368b66f88916efcf02be3aa1cbdb2711",
+    "comparator/formal-conjectures.json": "5f69aa656a5fd3767ddb3ec5521abf4e1046a4e3025b36858be1b4aad594b7ed"
+  },
+  "comparators": [
+    {
+      "challenge_module": "Challenge",
+      "config_path": "comparator.json",
+      "external_kernels": {
+        "Lean paranoid": [
+          "leanchecker-paranoid",
+          "--silent",
+          "--from-export"
+        ],
+        "nanoda": [
+          "nanoda_bin"
+        ]
+      },
+      "permitted_axioms": [
+        "propext",
+        "Quot.sound",
+        "Classical.choice"
+      ],
+      "solution_module": "Main",
+      "theorem_names": [
+        "riemannHypothesis",
+        "riemannZeta_eq_zero_re",
+        "LFunction_ne_zero_of_half_lt_re",
+        "LFunction_eq_zero_re",
+        "LFunction_eq_zero_re_of_isPrimitive"
+      ]
+    },
+    {
+      "challenge_module": "FormalConjecturesChallenge",
+      "config_path": "comparator/formal-conjectures.json",
+      "external_kernels": {
+        "Lean paranoid": [
+          "leanchecker-paranoid",
+          "--silent",
+          "--from-export"
+        ],
+        "nanoda": [
+          "nanoda_bin"
+        ]
+      },
+      "permitted_axioms": [
+        "propext",
+        "Quot.sound",
+        "Classical.choice"
+      ],
+      "solution_module": "FormalConjecturesSolution",
+      "theorem_names": [
+        "RiemannHypothesis.riemannHypothesis",
+        "GRH.generalized_riemann_hypothesis"
+      ]
+    }
+  ],
+  "note_digests": {
+    "verification/NOTES.md": "26bbad4a892d241b19aa9ec05f56c45334a7e73d8650b4b4e18f61e627bf685e",
+    "verification/static-scan.txt": "0ed8c54b3bf5fb74cee073060b340abb758e7421bc3117fa48b0b0fa56bd830f"
+  },
+  "replay_pin": {
+    "head_commit": "22df13aabb3eeab0c05e6ed928cb5f3d21c7aee5",
+    "lean_commit": "819816b2e0a3bf405af45ae5c7af2491d8f5bee6",
+    "lean_version": "4.33.1",
+    "mathlib_commit": "0df444a360eaa60ab8c11dca51a86af692955474",
+    "module_count": 175187,
+    "parts_sha256_digest": "d2a5f82a86712b08ff1923e93eabd3dafe9bdd9a7758893384a0e418580aa719"
+  },
+  "schema_version": "1.0.0",
+  "upstream": {
+    "branch": "main",
+    "head_commit": "c900e67c2fcd1fdb041685820bbd2b867fbc5a4b",
+    "lean_toolchain": "leanprover/lean4:v4.37.0-rc1",
+    "mathlib_rev": "31ce06eaadf4a200c0e1407c5f10953cf606b8f8",
+    "repo_name": "riemann-hypothesis"
+  }
+}

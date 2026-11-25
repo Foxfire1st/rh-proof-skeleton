@@ -14,6 +14,11 @@ build/
 site/node_modules/
 site/docs/.vitepress/cache/
 site/docs/.vitepress/dist/
+site/docs/stages/
+site/docs/concepts/
+site/docs/assets/
+site/docs/public/
+site/docs/index.md
 
 # OS / Editors
 .DS_Store

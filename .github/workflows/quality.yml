@@ -15,3 +15,72 @@ jobs:
           python-version: "3.12"
       - run: scripts/bootstrap-venv.sh
       - run: scripts/check-quality.sh
+
+  site-build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: scripts/bootstrap-venv.sh
+      - name: Build static site against synthetic fixture
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+
+          mem = Path("/tmp/rh-site-check-memory")
+          if mem.exists():
+              shutil.rmtree(mem)
+          docs = mem / "docs"
+          (docs / "concepts").mkdir(parents=True)
+          (docs / "stages" / "00_statement").mkdir(parents=True)
+          (docs / "assets").mkdir(parents=True)
+          (docs / "assets" / "sample.svg").write_text(
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">'
+              '<title>Sample</title><desc>Synthetic fixture SVG</desc>'
+              '<rect width="120" height="40" fill="#eef4ff"/></svg>\n',
+              encoding="utf-8",
+          )
+          (docs / "concepts" / "critical-line.md").write_text(
+              "---\n"
+              "slug: critical-line\n"
+              "term: critical line\n"
+              "inline_glimpse: The vertical line where real part equals one-half.\n"
+              "visual_ref: assets/sample.svg\n"
+              "where_analogy_breaks: A geometric line is only the domain; behavior lives in zeta.\n"
+              "sources:\n"
+              "  - title: Titchmarsh\n"
+              "    citation: Ch. 2\n"
+              "    kind: book\n"
+              "lean_anchors:\n"
+              "  - 00_statement/statements.lean#RiemannZetaZerosOnLine\n"
+              "---\n"
+              "The critical line is $\\operatorname{Re}(s) = 1/2$.\n",
+              encoding="utf-8",
+          )
+          (docs / "stages" / "00_statement" / "overview.md").write_text(
+              "# Stage 00 Fixture\n\n"
+              "## Level 1 — Abitur / First-Principles\n\n"
+              "Zeros sit on {{concept:critical-line|the vertical line at real part one-half}}.\n"
+              "Later we inspect {{term:critical-line}} again.\n\n"
+              "### Where this analogy breaks\n\n"
+              "Synthetic fixture boundary note.\n\n"
+              "## Level 2 — Undergrad Bridge\n\n"
+              "On the {{term:critical-line}}, $\\operatorname{Re}(s) = 1/2$.\n\n"
+              "## Level 3 — Formal Lean Contract\n\n"
+              "<!-- rh:lean-node:00_statement/main -->\n\n"
+              "<!-- rh:stage-minimap:00_statement -->\n",
+              encoding="utf-8",
+          )
+          PY
+          .venv/bin/rh-validate --repo . --memory /tmp/rh-site-check-memory
+          .venv/bin/rh-build-site --repo . --memory /tmp/rh-site-check-memory --out site/docs --base-url /ar-rh-proof-skeleton/
+      - working-directory: site
+        run: npm ci && npm run docs:build

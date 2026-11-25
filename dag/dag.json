@@ -1,0 +1,454 @@
+{
+  "nodes": [
+    {
+      "declarations": [
+        {
+          "end_line": 6,
+          "kind": "def",
+          "name": "RiemannZetaZerosOnLine",
+          "start_line": 5,
+          "upstream_end_line": 8,
+          "upstream_path": "src/Statements.lean",
+          "upstream_start_line": 7
+        },
+        {
+          "end_line": 11,
+          "kind": "def",
+          "name": "DirichletLNonvanishingRightOfHalf",
+          "start_line": 9,
+          "upstream_end_line": 12,
+          "upstream_path": "src/Statements.lean",
+          "upstream_start_line": 10
+        },
+        {
+          "end_line": 16,
+          "kind": "def",
+          "name": "DirichletLZerosOnLine",
+          "start_line": 14,
+          "upstream_end_line": 16,
+          "upstream_path": "src/Statements.lean",
+          "upstream_start_line": 14
+        },
+        {
+          "end_line": 21,
+          "kind": "def",
+          "name": "PrimitiveDirichletLZerosOnLine",
+          "start_line": 19,
+          "upstream_end_line": 20,
+          "upstream_path": "src/Statements.lean",
+          "upstream_start_line": 18
+        }
+      ],
+      "depends_on": [],
+      "id": "00_statement/statements",
+      "is_landmark": false,
+      "skeleton_file": "00_statement/statements.lean",
+      "stage_id": "00_statement",
+      "title": "Statements",
+      "upstream_path": "src/Statements.lean"
+    },
+    {
+      "declarations": [
+        {
+          "end_line": 6,
+          "kind": "def",
+          "name": "RiemannZetaZerosOnLine",
+          "start_line": 5,
+          "upstream_end_line": 4,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 3
+        },
+        {
+          "end_line": 11,
+          "kind": "def",
+          "name": "DirichletLNonvanishingRightOfHalf",
+          "start_line": 9,
+          "upstream_end_line": 8,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 6
+        },
+        {
+          "end_line": 16,
+          "kind": "def",
+          "name": "DirichletLZerosOnLine",
+          "start_line": 14,
+          "upstream_end_line": 12,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 10
+        },
+        {
+          "end_line": 21,
+          "kind": "def",
+          "name": "PrimitiveDirichletLZerosOnLine",
+          "start_line": 19,
+          "upstream_end_line": 16,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 14
+        },
+        {
+          "end_line": 26,
+          "kind": "theorem",
+          "name": "riemannHypothesis",
+          "start_line": 24,
+          "upstream_end_line": 19,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 18
+        },
+        {
+          "end_line": 29,
+          "kind": "theorem",
+          "name": "riemannZeta_eq_zero_re",
+          "start_line": 28,
+          "upstream_end_line": 21,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 21
+        },
+        {
+          "end_line": 32,
+          "kind": "theorem",
+          "name": "LFunction_ne_zero_of_half_lt_re",
+          "start_line": 31,
+          "upstream_end_line": 23,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 23
+        },
+        {
+          "end_line": 35,
+          "kind": "theorem",
+          "name": "LFunction_eq_zero_re",
+          "start_line": 34,
+          "upstream_end_line": 25,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 25
+        },
+        {
+          "end_line": 38,
+          "kind": "theorem",
+          "name": "LFunction_eq_zero_re_of_isPrimitive",
+          "start_line": 37,
+          "upstream_end_line": 27,
+          "upstream_path": "src/Challenge.lean",
+          "upstream_start_line": 27
+        }
+      ],
+      "depends_on": [],
+      "id": "00_statement/challenge",
+      "is_landmark": true,
+      "skeleton_file": "00_statement/challenge.lean",
+      "stage_id": "00_statement",
+      "title": "Challenge",
+      "upstream_path": "src/Challenge.lean"
+    },
+    {
+      "declarations": [
+        {
+          "end_line": 6,
+          "kind": "theorem",
+          "name": "LFunction_ne_zero_of_half_lt_re",
+          "start_line": 5,
+          "upstream_end_line": 44,
+          "upstream_path": "src/Main.lean",
+          "upstream_start_line": 43
+        },
+        {
+          "end_line": 9,
+          "kind": "theorem",
+          "name": "riemannHypothesis",
+          "start_line": 8,
+          "upstream_end_line": 47,
+          "upstream_path": "src/Main.lean",
+          "upstream_start_line": 46
+        },
+        {
+          "end_line": 12,
+          "kind": "theorem",
+          "name": "riemannZeta_eq_zero_re",
+          "start_line": 11,
+          "upstream_end_line": 49,
+          "upstream_path": "src/Main.lean",
+          "upstream_start_line": 49
+        },
+        {
+          "end_line": 15,
+          "kind": "theorem",
+          "name": "LFunction_eq_zero_re",
+          "start_line": 14,
+          "upstream_end_line": 52,
+          "upstream_path": "src/Main.lean",
+          "upstream_start_line": 51
+        },
+        {
+          "end_line": 18,
+          "kind": "theorem",
+          "name": "LFunction_eq_zero_re_of_isPrimitive",
+          "start_line": 17,
+          "upstream_end_line": 56,
+          "upstream_path": "src/Main.lean",
+          "upstream_start_line": 54
+        }
+      ],
+      "depends_on": [
+        "00_statement/statements"
+      ],
+      "id": "00_statement/main",
+      "is_landmark": true,
+      "skeleton_file": "00_statement/main.lean",
+      "stage_id": "00_statement",
+      "title": "Main",
+      "upstream_path": "src/Main.lean"
+    },
+    {
+      "declarations": [
+        {
+          "end_line": 11,
+          "kind": "instance",
+          "name": "DirichletCharacter.instDecidablePredOddOfDecidableEq_formalConjecturesForMathlib",
+          "start_line": 5,
+          "upstream_end_line": 64,
+          "upstream_path": "comparator/FormalConjecturesStatement.lean",
+          "upstream_start_line": 58
+        },
+        {
+          "end_line": 22,
+          "kind": "def",
+          "name": "GRH.trivialZeros",
+          "start_line": 13,
+          "upstream_end_line": 79,
+          "upstream_path": "comparator/FormalConjecturesStatement.lean",
+          "upstream_start_line": 70
+        }
+      ],
+      "depends_on": [],
+      "id": "00_statement/formal_conjectures_statement",
+      "is_landmark": false,
+      "skeleton_file": "00_statement/formal_conjectures_statement.lean",
+      "stage_id": "00_statement",
+      "title": "FormalConjecturesStatement",
+      "upstream_path": "comparator/FormalConjecturesStatement.lean"
+    },
+    {
+      "declarations": [
+        {
+          "end_line": 11,
+          "kind": "instance",
+          "name": "DirichletCharacter.instDecidablePredOddOfDecidableEq_formalConjecturesForMathlib",
+          "start_line": 5,
+          "upstream_end_line": 68,
+          "upstream_path": "comparator/FormalConjecturesChallenge.lean",
+          "upstream_start_line": 62
+        },
+        {
+          "end_line": 23,
+          "kind": "theorem",
+          "name": "RiemannHypothesis.riemannHypothesis",
+          "start_line": 13,
+          "upstream_end_line": 84,
+          "upstream_path": "comparator/FormalConjecturesChallenge.lean",
+          "upstream_start_line": 74
+        },
+        {
+          "end_line": 32,
+          "kind": "def",
+          "name": "GRH.trivialZeros",
+          "start_line": 25,
+          "upstream_end_line": 99,
+          "upstream_path": "comparator/FormalConjecturesChallenge.lean",
+          "upstream_start_line": 90
+        },
+        {
+          "end_line": 41,
+          "kind": "theorem",
+          "name": "GRH.generalized_riemann_hypothesis",
+          "start_line": 34,
+          "upstream_end_line": 108,
+          "upstream_path": "comparator/FormalConjecturesChallenge.lean",
+          "upstream_start_line": 101
+        }
+      ],
+      "depends_on": [],
+      "id": "00_statement/formal_conjectures_challenge",
+      "is_landmark": true,
+      "skeleton_file": "00_statement/formal_conjectures_challenge.lean",
+      "stage_id": "00_statement",
+      "title": "FormalConjecturesChallenge",
+      "upstream_path": "comparator/FormalConjecturesChallenge.lean"
+    }
+  ],
+  "schema_version": "rh-dag/v1",
+  "stages": [
+    {
+      "files": [
+        {
+          "preserve_defs": true,
+          "skeleton_file": "00_statement/statements.lean",
+          "upstream_path": "src/Statements.lean"
+        },
+        {
+          "preserve_defs": true,
+          "skeleton_file": "00_statement/challenge.lean",
+          "upstream_path": "src/Challenge.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "00_statement/main.lean",
+          "upstream_path": "src/Main.lean"
+        },
+        {
+          "preserve_defs": true,
+          "skeleton_file": "00_statement/formal_conjectures_statement.lean",
+          "upstream_path": "comparator/FormalConjecturesStatement.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "00_statement/formal_conjectures_challenge.lean",
+          "upstream_path": "comparator/FormalConjecturesChallenge.lean"
+        }
+      ],
+      "order": 0,
+      "stage_id": "00_statement",
+      "summary": "Mathlib and formal-conjectures statements of the Riemann Hypothesis and Generalized Riemann Hypothesis, comparator challenges, and Main entry theorems.",
+      "title": "Formal Statements & Challenge Contracts"
+    },
+    {
+      "files": [],
+      "order": 1,
+      "stage_id": "01_stepanov_determinant",
+      "summary": "Auxiliary polynomial and Stepanov determinant construction at the foundation of the multiplicity method.",
+      "title": "Stepanov Determinant"
+    },
+    {
+      "files": [],
+      "order": 2,
+      "stage_id": "02_cm_curve_derivations",
+      "summary": "Invariant derivation D with D^p = 0 on a CM curve for inert primes p and p-adic divisibility of theta derivatives.",
+      "title": "CM Curve Derivations and p-adic Divisibility"
+    },
+    {
+      "files": [],
+      "order": 3,
+      "stage_id": "03_quadric_theta_automorphy",
+      "summary": "Writing qN = M^k + R via path quadrics and realizing automorphy of N through theta period integrals on the sixfold cover of GL_5.",
+      "title": "Quadric Decomposition and Sixfold-Cover Theta Automorphy"
+    },
+    {
+      "files": [],
+      "order": 4,
+      "stage_id": "04_stepanov_bootstrap",
+      "summary": "Establishing W(1_S) >= 0 through a determinant and reinterpreting it as a multiplicity-one Stepanov bootstrap.",
+      "title": "Positivity via Stepanov Determinant Bootstrap"
+    },
+    {
+      "files": [],
+      "order": 5,
+      "stage_id": "05_von_mangoldt_guinand_weil",
+      "summary": "Switching definitively to the von Mangoldt function Lambda with the Guinand-Weil sign and variance test-function trick.",
+      "title": "Von Mangoldt Switch and Guinand-Weil Variance Test Function"
+    },
+    {
+      "files": [],
+      "order": 6,
+      "stage_id": "06_zero_free_region_positivity",
+      "summary": "Applying W(1_(0,1] + (~X^eta) 1_(0,1/X]) >= 0 to drive the zero-free threshold beyond 1 - eta.",
+      "title": "Positivity Inequality for Zero-Free Width"
+    },
+    {
+      "files": [],
+      "order": 7,
+      "stage_id": "07_ggp_period_determinants",
+      "summary": "Constructing determinants for W(.) carrying Gan-Gross-Prasad periods with interlacing and bounded non-interlacing weights.",
+      "title": "Determinants for GGP Periods and Interlacing Weights"
+    },
+    {
+      "files": [],
+      "order": 8,
+      "stage_id": "08_iterated_theta_lifts",
+      "summary": "Iterated theta lifts U(X_0) -> U(X_1) -> ... -> U(X_m) between totally definite unitary groups winning multiplicity m around sqrt(X).",
+      "title": "Iterated Unitary Theta Lifts"
+    },
+    {
+      "files": [],
+      "order": 9,
+      "stage_id": "09_lift_norms_and_divisibility",
+      "summary": "Norms and levels of iterated lifts and cancellation of order-m terms with divisibility via Chowla-Selberg, Weyl, and Siegel mass formulas.",
+      "title": "Norms, Levels, and Chowla-Selberg / Weyl / Siegel Mass Divisibility"
+    },
+    {
+      "files": [],
+      "order": 10,
+      "stage_id": "10_iterated_lift_divisibility_bound",
+      "summary": "Establishing a sufficient lower bound on the divisibility of the m-fold iterated theta lift.",
+      "title": "Lower Bound on Iterated Lift Divisibility"
+    },
+    {
+      "files": [],
+      "order": 11,
+      "stage_id": "11_iwasawa_tower",
+      "summary": "Constructing the Iwasawa tower by analogy to pigeonhole arguments over finite field extensions F_{q^n}/F_q.",
+      "title": "Iwasawa Tower Pigeonhole Analogy"
+    },
+    {
+      "files": [],
+      "order": 12,
+      "stage_id": "12_seesaw_bessel_period",
+      "summary": "Seesaw identity identifying the period of the iterated lift as a Bessel period independent of the Hecke characters via Rallis.",
+      "title": "Seesaw Identity and Rallis Bessel Period"
+    },
+    {
+      "files": [],
+      "order": 13,
+      "stage_id": "13_bost_slope_inequality",
+      "summary": "Applying the Bost slope inequality from Arakelov geometry to bound arithmetic degrees.",
+      "title": "Bost Slope Inequality"
+    },
+    {
+      "files": [],
+      "order": 14,
+      "stage_id": "14_lift_cost_and_division",
+      "summary": "Precise accounting of each lift's cost, overcoming the a priori 2/3 barrier through twisting and division.",
+      "title": "Lift Cost Accounting and Breaking the 2/3 Barrier"
+    },
+    {
+      "files": [],
+      "order": 15,
+      "stage_id": "15_hecke_integral_structure",
+      "summary": "Gluing an integral structure across Hecke characters to achieve extra averaging and a greatest-common-divisor effect.",
+      "title": "Glued Integral Structure Across Hecke Characters"
+    },
+    {
+      "files": [],
+      "order": 16,
+      "stage_id": "16_relative_trace_formula",
+      "summary": "Relative trace formula via sixfold-cover GL_5 automorphy of mu, reducing by Cauchy-Schwarz to projected Poincare series norms and approximate column orthogonality.",
+      "title": "Relative Trace Formula and Poincare Series Orthogonality"
+    },
+    {
+      "files": [],
+      "order": 17,
+      "stage_id": "17_weakened_vandiver",
+      "summary": "Handling surviving classes in H^1(O_E[1/ell], Q_ell/Z_ell(-e)) not killed by twisting via a significant weakening of Vandiver.",
+      "title": "Cohomology Classes and Weakened Vandiver"
+    },
+    {
+      "files": [],
+      "order": 18,
+      "stage_id": "18_covolumes_and_congruences",
+      "summary": "Computing covolumes, theta series indices, and congruences between iterated lifts and automorphic forms.",
+      "title": "Covolumes, Theta Series Index, and Lift Congruences"
+    },
+    {
+      "files": [],
+      "order": 19,
+      "stage_id": "19_behrend_iwasawa_choice",
+      "summary": "Selecting the exact Iwasawa tower parameters using Behrend's construction.",
+      "title": "Precise Iwasawa Tower Choice via Behrend"
+    },
+    {
+      "files": [],
+      "order": 20,
+      "stage_id": "20_grh",
+      "summary": "Completing the proof of the Generalized Riemann Hypothesis and deducing the classical Riemann Hypothesis.",
+      "title": "Generalized Riemann Hypothesis (GRH)"
+    }
+  ],
+  "upstream_commit": "c900e67c2fcd1fdb041685820bbd2b867fbc5a4b"
+}

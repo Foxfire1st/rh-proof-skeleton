@@ -45,6 +45,10 @@ export default defineConfig({
             text: 'Stage 03 — Upper Bound (Theorem A)',
             link: '/stages/03_upper_bound/overview',
           },
+          {
+            text: 'Stage 04 — Spanning (Theorem B)',
+            link: '/stages/04_spanning/overview',
+          },
         ],
       },
       { text: 'Concepts', link: '/concepts/' },
@@ -131,6 +135,24 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Stage 04 — Spanning (Theorem B)',
+        items: [
+          { text: 'Overview', link: '/stages/04_spanning/overview' },
+          {
+            text: 'Multiplicity Equality & Spanning',
+            link: '/stages/04_spanning/equal-multiplicities-and-spanning',
+          },
+          {
+            text: 'Unfolding & Second Moments',
+            link: '/stages/04_spanning/unfolding-and-second-moments',
+          },
+          {
+            text: 'Kloosterman Sieve & Remaining Terms',
+            link: '/stages/04_spanning/main-term-sieve-and-remaining-terms',
+          },
+        ],
+      },
+      {
         text: 'Foundational Concepts',
         items: [
           { text: 'All Concept Cards', link: '/concepts/' },
@@ -197,6 +219,21 @@ export default defineConfig({
             link: '/concepts/elementary-divisor',
           },
           { text: 'Frobenius Cycle', link: '/concepts/frobenius-cycle' },
+          {
+            text: 'Hilbert–Schmidt Norm',
+            link: '/concepts/hilbert-schmidt-norm',
+          },
+          { text: 'Trace Comparison', link: '/concepts/trace-comparison' },
+          {
+            text: 'Central Idempotent',
+            link: '/concepts/central-idempotent',
+          },
+          {
+            text: 'Bessel Orbital Integral',
+            link: '/concepts/bessel-orbital-integral',
+          },
+          { text: 'Kloosterman Sieve', link: '/concepts/kloosterman-sieve' },
+          { text: 'Link Lattice', link: '/concepts/link-lattice' },
         ],
       },
     ],

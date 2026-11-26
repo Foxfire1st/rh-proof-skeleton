@@ -44,7 +44,7 @@ def test_conforming_level1_prose_passes() -> None:
     markdown = (
         "# Stage Overview\n"
         "\n"
-        "## Level 1 — Abitur Intuition\n"
+        "## Level 1 — First-Principles\n"
         "We start with {{concept:dirichlet-l-function|a sum weighted by periodic signs}}.\n"
         "Later we refer to {{term:dirichlet-l-function|Dirichlet L-functions}} and also\n"
         "plain Dirichlet L-function, Dirichlet L-functions, or Dirichlet L-series.\n"

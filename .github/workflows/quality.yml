@@ -67,7 +67,7 @@ jobs:
           )
           (docs / "stages" / "00_statement" / "overview.md").write_text(
               "# Stage 00 Fixture\n\n"
-              "## Level 1 — Abitur / First-Principles\n\n"
+              "## Level 1 — First-Principles\n\n"
               "Zeros sit on {{concept:critical-line|the vertical line at real part one-half}}.\n"
               "Later we inspect {{term:critical-line}} again.\n\n"
               "### Where this analogy breaks\n\n"

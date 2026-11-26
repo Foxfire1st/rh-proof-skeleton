@@ -411,22 +411,79 @@ def render_concepts_index(ctx: RenderContext) -> str:
     return "\n\n".join(["# Concept Index", ctx.banner_tag, "\n".join(rows)]) + "\n"
 
 
+def _stage_page_sort_key(item: tuple[str, str]) -> tuple[int, str]:
+    stem = item[0]
+    if stem == "overview":
+        return (0, stem)
+    if stem == "proof-journey":
+        return (1, stem)
+    return (2, stem)
+
+
+def _render_stage_roadmap_entry(
+    stage: StageDefinition,
+    node_count: int,
+    published_pages: Sequence[tuple[str, str]],
+) -> str:
+    lines = [f"### Stage {stage.order:02d} — {stage.title}"]
+    if stage.summary:
+        lines.extend(("", stage.summary))
+    lines.extend(("", f"- **Extracted landmarks:** {node_count}"))
+    if published_pages:
+        links = " · ".join(
+            f"[{title}](/stages/{stage.stage_id}/{stem})"
+            for stem, title in sorted(published_pages, key=_stage_page_sort_key)
+        )
+        lines.append(f"- **Published pages:** {links}")
+    else:
+        status = "Skeleton extracted — essay upcoming" if node_count > 0 else "Upcoming"
+        lines.append(f"- **Status:** {status}")
+    return "\n".join(lines)
+
+
+def _render_proof_roadmap(stage_titles: Mapping[tuple[str, str], str], ctx: RenderContext) -> str:
+    node_counts: dict[str, int] = {}
+    for node in ctx.dag.nodes:
+        node_counts[node.stage_id] = node_counts.get(node.stage_id, 0) + 1
+    pages_by_stage: dict[str, list[tuple[str, str]]] = {}
+    for (stage_id, stem), title in sorted(stage_titles.items()):
+        pages_by_stage.setdefault(stage_id, []).append((stem, title))
+    ordered_stages = sorted(ctx.dag.stages, key=lambda s: (s.order, s.stage_id))
+    entries = [
+        _render_stage_roadmap_entry(
+            stage,
+            node_counts.get(stage.stage_id, 0),
+            pages_by_stage.get(stage.stage_id, ()),
+        )
+        for stage in ordered_stages
+    ]
+    return "## 8-Pillar Proof Roadmap\n\n" + "\n\n".join(entries)
+
+
 def render_landing_index(stage_titles: Mapping[tuple[str, str], str], ctx: RenderContext) -> str:
-    """Render `index.md` with Stage 00 links, mini-map, concept index, and upstream links."""
+    """Render `index.md` with intro links, 8-pillar roadmap, mini-map, concepts, and provenance."""
+    has_journey = ("00_statement", "proof-journey") in stage_titles
+    excluded_landmarks = {("00_statement", "overview"), ("00_statement", "proof-journey")}
     page_links = [
         f"- [{stage_titles[k]}](/stages/{k[0]}/{k[1]})"
         for k in sorted(stage_titles)
-        if k != ("00_statement", "overview")
+        if k not in excluded_landmarks
     ]
     cards = sorted(ctx.registry.values(), key=lambda c: (c.term.lower(), c.slug))
     concept_links = [f"- [{c.term}](/concepts/{c.slug})" for c in cards]
     upstream_tree = f"{UPSTREAM_REPO_URL}/tree/{ctx.dag.upstream_commit}"
-    sections = [
-        "# Riemann Hypothesis Formal Proof Skeleton",
-        ctx.banner_tag,
+    intro = (
         "Start with the [Stage 00 Overview](/stages/00_statement/overview) for the statement and "
-        "entry-point architecture of the formalization.",
-    ]
+        "entry-point architecture of the formalization."
+    )
+    if has_journey:
+        intro += (
+            " Explore the [Full Proof Journey & Alpöge's 20-Step Map]"
+            "(/stages/00_statement/proof-journey) for the complete 8-pillar architecture."
+        )
+    sections = ["# Riemann Hypothesis Formal Proof Skeleton", ctx.banner_tag, intro]
+    if ctx.dag.stages:
+        sections.append(_render_proof_roadmap(stage_titles, ctx))
     if page_links:
         sections.append("## Landmark Pages\n\n" + "\n".join(page_links))
     sections.append("## Stage 00 Dependency Map\n\n" + render_stage_minimap("00_statement", ctx))

@@ -536,3 +536,62 @@ def test_verification_banner_repo_layout(tmp_path: Path) -> None:
     overview = (out / "stages" / "00_statement" / "overview.md").read_text(encoding="utf-8")
     assert 'repo-layout="condensed"' in overview
     assert 'repo-layout="condensed"' in (out / "index.md").read_text(encoding="utf-8")
+
+
+def _add_roadmap_stages(repo: Path) -> None:
+    skel = "01_reduction/reduce.lean"
+    _write(repo / "skeleton" / skel, "theorem red : True := by sorry\n")
+    dag_path = repo / "dag" / "dag.json"
+    dag = json.loads(dag_path.read_text(encoding="utf-8"))
+    s1_files = [{"upstream_path": "src/Red.lean", "skeleton_file": skel, "preserve_defs": False}]
+    s1 = {"stage_id": "01_reduction", "order": 1, "title": "Reduction", "summary": "S1 text."}
+    s2 = {"stage_id": "02_derivatives", "order": 2, "title": "Derivatives", "summary": "S2 text."}
+    dag["stages"].extend([{**s1, "files": s1_files}, {**s2, "files": []}])
+    node: dict[str, object] = {"id": "01_reduction/reduce", "stage_id": "01_reduction"}
+    node |= {"title": "Reduce", "skeleton_file": skel, "upstream_path": "src/Red.lean"}
+    node |= {"declarations": [], "depends_on": [], "is_landmark": True}
+    dag["nodes"].append(node)
+    dag_path.write_text(json.dumps(dag, indent=2) + "\n", encoding="utf-8")
+
+
+def test_landing_index_overview_only_roadmap(tmp_path: Path) -> None:
+    repo, memory, out = _make_fixture(tmp_path)
+    _add_roadmap_stages(repo)
+    compile_site(SiteBuildConfig(repo_root=repo, memory_root=memory, out_docs_dir=out))
+    index_md = (out / "index.md").read_text(encoding="utf-8")
+    assert "[Stage 00 Overview](/stages/00_statement/overview)" in index_md
+    assert "/stages/00_statement/proof-journey" not in index_md
+    assert "## 8-Pillar Proof Roadmap" in index_md
+    for expected in (
+        "### Stage 00 — Statement and Entry Point",
+        "### Stage 01 — Reduction",
+        "### Stage 02 — Derivatives",
+        "- **Extracted landmarks:** 2",
+        "- **Extracted landmarks:** 1",
+        "- **Extracted landmarks:** 0",
+        "- **Status:** Skeleton extracted — essay upcoming",
+        "- **Status:** Upcoming",
+    ):
+        assert expected in index_md
+    assert "/stages/01_reduction/" not in index_md and "/stages/02_derivatives/" not in index_md
+
+
+def test_landing_index_with_proof_journey(tmp_path: Path) -> None:
+    repo, memory, out = _make_fixture(tmp_path)
+    _add_roadmap_stages(repo)
+    journey_link = "[Full Proof Journey & Alpöge's 20-Step Map](/stages/00_statement/proof-journey)"
+    s00 = memory / "docs" / "stages" / "00_statement"
+    _write(s00 / "proof-journey.md", "# Full Proof Journey & Alpöge's 20-Step Map\n\nBody.\n")
+    _write(s00 / "main-theorems.md", "# Main Theorems\n\nBody.\n")
+    compile_site(SiteBuildConfig(repo_root=repo, memory_root=memory, out_docs_dir=out))
+    index_md = (out / "index.md").read_text(encoding="utf-8")
+    intro, rest = index_md.split("## 8-Pillar Proof Roadmap", 1)
+    assert journey_link in intro
+    roadmap, tail = rest.split("## Landmark Pages", 1)
+    landmarks = tail.split("## Stage 00 Dependency Map", 1)[0]
+    assert "/stages/00_statement/proof-journey" not in landmarks
+    assert "/stages/00_statement/overview" not in landmarks
+    assert "[Main Theorems](/stages/00_statement/main-theorems)" in landmarks
+    assert journey_link in roadmap and "S1 text." in roadmap
+    assert "Skeleton extracted — essay upcoming" in roadmap
+    assert "/stages/01_reduction/" not in index_md

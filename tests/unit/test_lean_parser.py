@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from rh_pipeline.lean.parser import UnsupportedLeanFormError, extract_declarations
+from rh_pipeline.lean.stub_emitter import render_skeleton_file
 from rh_pipeline.models.lean import ExtractedModule, LeanDeclaration
 
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "lean_parser"
@@ -110,14 +111,11 @@ def test_admitted_full_fixture_extracts_all_declarations_and_imports() -> None:
 
 
 REFUSED_FIXTURE_CASES: list[tuple[str, int, str]] = [
-    ("refused_anonymous_instance.lean", 3, "anonymous-instance"),
     ("refused_macro.lean", 3, "macro"),
     ("refused_mutual.lean", 3, "mutual"),
-    ("refused_open.lean", 3, "open"),
     ("refused_set_option.lean", 3, "set_option"),
     ("refused_termination_by.lean", 7, "termination_by"),
     ("refused_unbalanced_namespace.lean", 3, "unbalanced-namespace"),
-    ("refused_variable.lean", 3, "variable"),
 ]
 
 
@@ -143,7 +141,6 @@ def test_refused_fixtures_raise_unsupported_error(
 
 
 ADDITIONAL_REFUSAL_CASES: list[tuple[str, int]] = [
-    ("open Complex in\ntheorem t : True := True.intro\n", 1),
     ('syntax "foo" : term\n', 1),
     ("macro_rules | `(foo) => `(0)\n", 1),
     ('notation "★" => Nat\n', 1),
@@ -152,16 +149,15 @@ ADDITIONAL_REFUSAL_CASES: list[tuple[str, int]] = [
     ('infixr:65 " ⊕ " => Nat.add\n', 1),
     ('infix:65 " ⊕ " => Nat.add\n', 1),
     ('postfix:50 "!" => Nat.succ\n', 1),
-    ("universe u\n", 1),
     ("universes u v\n", 1),
     ("variables (n : Nat)\n", 1),
-    ("attribute [simp] foo\n", 1),
     ("local def foo : Nat := 1\n", 1),
     ("scoped def foo : Nat := 1\n", 1),
-    ("@[local simp]\ntheorem foo : True := True.intro\n", 1),
-    ("@[simp, scoped ext]\ntheorem foo : True := True.intro\n", 1),
-    ("omit h in\ntheorem foo : True := True.intro\n", 1),
-    ("include h\n", 1),
+    ("local theorem foo : True := True.intro\n", 1),
+    ("scoped instance : Inhabited Nat := ⟨0⟩\n", 1),
+    ("scoped lemma foo : True := True.intro\n", 1),
+    ("seal foo\ntheorem t : True := True.intro\n", 1),
+    ("unseal foo\ntheorem t : True := True.intro\n", 1),
     ("def f (n : Nat) : Nat :=\n  n\n  decreasing_by trivial\n", 3),
     ("def f (n : Nat) : Nat :=\n  n\n  termination_by n\n", 3),
     ("def f (n : Nat) : Nat :=\n  n\ndecreasing_by trivial\n", 3),
@@ -177,16 +173,16 @@ ADDITIONAL_REFUSAL_CASES: list[tuple[str, int]] = [
     ("def bad (n : Nat : Nat := n\n", 1),
     ("def bad (n : Nat] : Nat := n\n", 1),
     ("/-- orphan doc -/\nnamespace A\nend A\n", 2),
+    ("/-- orphan doc -/\nopen Complex\ntheorem t : True := True.intro\n", 2),
     ("@[simp]\nsection Foo\nend Foo\n", 2),
     ("/-- orphan at eof -/\n", 1),
     ("@[expose]\n", 1),
+    ("open Complex in\n", 1),
     ("example : True := True.intro\n", 1),
     ("#check Nat\n", 1),
     ("theorem no_body : True\n", 1),
-    ("instance instWhere : Foo Nat where\n  x := 1\n", 1),
-    ("instance (x : Nat) : Foo Nat := bar\n", 1),
-    ("instance [Inhabited T] : Inhabited (Option T) := ⟨none⟩\n", 1),
     ("instance where\n  x := 1\n", 1),
+    ("instance (x : Nat) where\n  val := x\n", 1),
     ("module Extra\n", 1),
     ("import A B\n", 1),
 ]
@@ -292,3 +288,178 @@ def test_refuses_col0_where_after_def() -> None:
         extract_declarations(src, rel_path="BadWhere.lean", commit=COMMIT)
     assert exc_info.value.line == 2
     assert exc_info.value.form == "where"
+
+
+def test_admitted_commands_sections_and_local_instances() -> None:
+    src = (
+        "module\n"
+        "universe u v\n"
+        "open Complex\n"
+        "open scoped BigOperators\n"
+        "variable (n : Nat)\n"
+        "  (h : n = n)\n"
+        "include h\n"
+        "omit h\n"
+        "export Nat (succ)\n"
+        "attribute [simp]\n"
+        "  foo\n"
+        "  bar\n"
+        "grind_pattern foo_eq => foo x\n"
+        "local grind_pattern bar_eq =>\n"
+        "  bar x where\n"
+        "  x = x\n"
+        "noncomputable section NamedSec\n"
+        "@[local simp]\n"
+        "theorem t1 : True := True.intro\n"
+        "@[simp, scoped ext]\n"
+        "theorem t2 : True := True.intro\n"
+        "local instance instLocal (j : Nat) : Foo j := bar\n"
+        "noncomputable local instance instNoncompLocal : Foo Nat := bar\n"
+        "end NamedSec\n"
+        "noncomputable section\n"
+        "def inAnonNoncomp : Nat := 1\n"
+        "end\n"
+    )
+    mod = extract_declarations(src, rel_path="Commands.lean", commit=COMMIT)
+    assert [(d.name, d.kind) for d in mod.declarations] == [
+        ("t1", "theorem"),
+        ("t2", "theorem"),
+        ("instLocal", "instance"),
+        ("instNoncompLocal", "instance"),
+        ("inAnonNoncomp", "def"),
+    ]
+    assert mod.declarations[0].signature == "@[local simp]\ntheorem t1 : True"
+    assert mod.declarations[1].signature == "@[simp, scoped ext]\ntheorem t2 : True"
+    assert mod.declarations[2].signature == "local instance instLocal (j : Nat) : Foo j"
+    assert (
+        mod.declarations[3].signature == "noncomputable local instance instNoncompLocal : Foo Nat"
+    )
+
+
+def test_scoped_in_prefixes_stripped_before_and_after_docs() -> None:
+    src = (
+        "open Complex in\n"
+        "omit h in\n"
+        "theorem t1 : True := True.intro\n"
+        "/-- Doc before scoped prefix. -/\n"
+        "open Real\n"
+        "  Topology in\n"
+        "seal helper in\n"
+        "unseal helper in\n"
+        "@[local simp]\n"
+        "theorem t2 : True := True.intro\n"
+        "variable (x : Nat) in\n"
+        "include x in\n"
+        "/-- Doc after scoped prefix. -/\n"
+        "def d1 : Nat := x\n"
+    )
+    mod = extract_declarations(src, rel_path="Scoped.lean", commit=COMMIT)
+    assert [d.name for d in mod.declarations] == ["t1", "t2", "d1"]
+    assert mod.declarations[0].signature == "theorem t1 : True"
+    assert mod.declarations[1].signature == (
+        "/-- Doc before scoped prefix. -/\n@[local simp]\ntheorem t2 : True"
+    )
+    assert mod.declarations[2].signature == "/-- Doc after scoped prefix. -/\ndef d1 : Nat"
+    for decl in mod.declarations:
+        assert " in" not in decl.signature
+
+
+def test_root_prefix_overrides_open_namespace() -> None:
+    src = (
+        "namespace New.Selmer\n"
+        "theorem _root_.New.Data.foo (x : Nat) : x = x := rfl\n"
+        "def localHelper : Nat := 1\n"
+        "end New.Selmer\n"
+    )
+    mod = extract_declarations(src, rel_path="Root.lean", commit=COMMIT)
+    assert [d.name for d in mod.declarations] == ["New.Data.foo", "New.Selmer.localHelper"]
+    assert mod.declarations[0].signature == "theorem New.Data.foo (x : Nat) : x = x"
+    assert mod.declarations[1].signature == "def New.Selmer.localHelper : Nat"
+
+
+def test_where_bodies_and_anonymous_instances_round_trip() -> None:
+    src = (
+        "namespace New.Rows\n"
+        "instance instWhere : Foo Nat where\n"
+        "  x := 1\n"
+        "instance (x : Nat) : Foo Nat := bar\n"
+        "instance [Inhabited T] : Inhabited (Option T) := ⟨none⟩\n"
+        "instance {A} [DecidableEq A] : Foo A where\n"
+        "  val := 0\n"
+        "def mkRecord (n : Nat) : Rec where\n"
+        "  field := n\n"
+        "end New.Rows\n"
+        "instance : Inhabited Nat := ⟨0⟩\n"
+    )
+    mod = extract_declarations(src, rel_path="Gluing.lean", commit=COMMIT)
+    assert [(d.name, d.kind) for d in mod.declarations] == [
+        ("New.Rows.instWhere", "instance"),
+        ("New.Rows._instance_1", "instance"),
+        ("New.Rows._instance_2", "instance"),
+        ("New.Rows._instance_3", "instance"),
+        ("New.Rows.mkRecord", "def"),
+        ("_instance_4", "instance"),
+    ]
+    assert mod.declarations[0].signature == "instance New.Rows.instWhere : Foo Nat"
+    assert mod.declarations[0].body == "where\n  x := 1"
+    assert mod.declarations[1].signature == "instance New.Rows._instance_1 (x : Nat) : Foo Nat"
+    assert (
+        mod.declarations[2].signature
+        == "instance New.Rows._instance_2 [Inhabited T] : Inhabited (Option T)"
+    )
+    assert (
+        mod.declarations[3].signature == "instance New.Rows._instance_3 {A} [DecidableEq A] : Foo A"
+    )
+    assert mod.declarations[3].body == "where\n  val := 0"
+    assert mod.declarations[4].signature == "def New.Rows.mkRecord (n : Nat) : Rec"
+    assert mod.declarations[4].body == "where\n  field := n"
+    assert mod.declarations[5].signature == "instance _instance_4 : Inhabited Nat"
+
+    for preserve_defs in (False, True):
+        rendered, _ = render_skeleton_file(mod, preserve_defs=preserve_defs)
+        reparsed = extract_declarations(rendered, rel_path="skeleton/Gluing.lean", commit=COMMIT)
+        assert [d.name for d in reparsed.declarations] == [d.name for d in mod.declarations]
+        assert [d.signature for d in reparsed.declarations] == [
+            d.signature for d in mod.declarations
+        ]
+
+
+def test_equation_compiler_bars_vs_norm_bars_and_round_trip() -> None:
+    src = (
+        "theorem norm_inline (x : Real) : |x| = |x| := rfl\n"
+        "theorem norm_line_start (x : Real) :\n"
+        "    |x| = |x| := by\n"
+        "  rfl\n"
+        "def fib : Nat → Nat\n"
+        "  | 0 =>\n"
+        "    let base := 0\n"
+        "    base\n"
+        "  | 1 => 1\n"
+        "  | n + 2 => fib n + fib (n + 1)\n"
+        "def isZero : Nat → Bool\n"
+        "| 0 => true\n"
+        "| _ => false\n"
+    )
+    mod = extract_declarations(src, rel_path="Bars.lean", commit=COMMIT)
+    assert [d.name for d in mod.declarations] == ["norm_inline", "norm_line_start", "fib", "isZero"]
+    assert mod.declarations[0].signature == "theorem norm_inline (x : Real) : |x| = |x|"
+    assert mod.declarations[0].body == "rfl"
+    assert mod.declarations[1].signature == "theorem norm_line_start (x : Real) :\n    |x| = |x|"
+    assert mod.declarations[1].body == "by\n  rfl"
+    assert mod.declarations[2].signature == "def fib : Nat → Nat"
+    assert mod.declarations[2].body == (
+        "  | 0 =>\n    let base := 0\n    base\n  | 1 => 1\n  | n + 2 => fib n + fib (n + 1)"
+    )
+    assert mod.declarations[3].signature == "def isZero : Nat → Bool"
+    assert mod.declarations[3].body == "| 0 => true\n| _ => false"
+
+    for preserve_defs in (False, True):
+        rendered, _ = render_skeleton_file(mod, preserve_defs=preserve_defs)
+        reparsed = extract_declarations(rendered, rel_path="skeleton/Bars.lean", commit=COMMIT)
+        assert [d.name for d in reparsed.declarations] == [d.name for d in mod.declarations]
+        assert [d.signature for d in reparsed.declarations] == [
+            d.signature for d in mod.declarations
+        ]
+        if preserve_defs:
+            assert reparsed.declarations[2].body == mod.declarations[2].body
+            assert reparsed.declarations[3].body == mod.declarations[3].body

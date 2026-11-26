@@ -17,9 +17,26 @@ def _should_emit_verbatim(kind: LeanDeclarationKind, *, preserve_defs: bool) -> 
     return preserve_defs and kind in _DEF_KINDS
 
 
+def _is_where_body(stripped_body: str) -> bool:
+    return stripped_body == "where" or (
+        stripped_body.startswith("where") and stripped_body[5].isspace()
+    )
+
+
+def _is_equation_arm_body(stripped_body: str) -> bool:
+    return stripped_body.startswith(("| ", "|\t", "|\n"))
+
+
 def _format_verbatim_declaration(decl: LeanDeclaration) -> str:
     if decl.body == "":
         return decl.signature
+    stripped = decl.body.lstrip(" \t")
+    if _is_equation_arm_body(stripped):
+        return f"{decl.signature}\n{decl.body}"
+    if _is_where_body(stripped):
+        if decl.body.startswith((" ", "\t")):
+            return f"{decl.signature}\n{decl.body}"
+        return f"{decl.signature} {stripped}"
     if decl.body.startswith((" ", "\t")):
         return f"{decl.signature} :=\n{decl.body}"
     return f"{decl.signature} := {decl.body}"

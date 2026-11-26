@@ -24,6 +24,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
+      { text: 'Proof Journey', link: '/stages/00_statement/proof-journey' },
       { text: 'Stage 00', link: '/stages/00_statement/overview' },
       { text: 'Concepts', link: '/concepts/' },
       {
@@ -36,6 +37,10 @@ export default defineConfig({
         text: 'Stage 00 — Formal Statement',
         items: [
           { text: 'Overview', link: '/stages/00_statement/overview' },
+          {
+            text: 'Full Proof Journey & 20-Step Map',
+            link: '/stages/00_statement/proof-journey',
+          },
           {
             text: 'Main Theorems & Challenges',
             link: '/stages/00_statement/main-theorems',

@@ -26,8 +26,23 @@ export default defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Proof Journey', link: '/stages/00_statement/proof-journey' },
-      { text: 'Stage 00', link: '/stages/00_statement/overview' },
-      { text: 'Stage 01', link: '/stages/01_reduction/overview' },
+      {
+        text: 'Stages',
+        items: [
+          {
+            text: 'Stage 00 — Formal Statement',
+            link: '/stages/00_statement/overview',
+          },
+          {
+            text: 'Stage 01 — The Theorem & Its Reduction',
+            link: '/stages/01_reduction/overview',
+          },
+          {
+            text: 'Stage 02 — Derivatives of Theta Functions',
+            link: '/stages/02_derivatives/overview',
+          },
+        ],
+      },
       { text: 'Concepts', link: '/concepts/' },
       {
         text: 'Upstream Lean Repo',
@@ -76,6 +91,24 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Stage 02 — Derivatives of Theta Functions',
+        items: [
+          { text: 'Overview', link: '/stages/02_derivatives/overview' },
+          {
+            text: 'Formal Groups & Divisibility',
+            link: '/stages/02_derivatives/formal-group-and-divisibility',
+          },
+          {
+            text: 'Tight Frames & Integral Vacuum',
+            link: '/stages/02_derivatives/tight-frames-and-integral-vacuum',
+          },
+          {
+            text: 'Sharpness: Bound Attained',
+            link: '/stages/02_derivatives/sharpness-bound-attained',
+          },
+        ],
+      },
+      {
         text: 'Foundational Concepts',
         items: [
           { text: 'All Concept Cards', link: '/concepts/' },
@@ -118,6 +151,18 @@ export default defineConfig({
           { text: 'Twisted Lattice', link: '/concepts/twisted-lattice' },
           { text: 'Gram Determinant', link: '/concepts/gram-determinant' },
           { text: 'Arithmetic Height', link: '/concepts/arithmetic-height' },
+          {
+            text: 'Complex Multiplication',
+            link: '/concepts/complex-multiplication',
+          },
+          {
+            text: 'Elliptic Theta Function',
+            link: '/concepts/elliptic-theta-function',
+          },
+          { text: 'Formal Group Law', link: '/concepts/formal-group-law' },
+          { text: 'Theta Normal Form', link: '/concepts/theta-normal-form' },
+          { text: 'Tight Frame', link: '/concepts/tight-frame' },
+          { text: 'Schur Jet', link: '/concepts/schur-jet' },
         ],
       },
     ],

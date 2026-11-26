@@ -41,6 +41,10 @@ export default defineConfig({
             text: 'Stage 02 — Derivatives of Theta Functions',
             link: '/stages/02_derivatives/overview',
           },
+          {
+            text: 'Stage 03 — Upper Bound (Theorem A)',
+            link: '/stages/03_upper_bound/overview',
+          },
         ],
       },
       { text: 'Concepts', link: '/concepts/' },
@@ -109,6 +113,24 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Stage 03 — Upper Bound (Theorem A)',
+        items: [
+          { text: 'Overview', link: '/stages/03_upper_bound/overview' },
+          {
+            text: 'Iterated Seesaw Identity',
+            link: '/stages/03_upper_bound/seesaw-identity',
+          },
+          {
+            text: 'Short Columns & Archimedean Size',
+            link: '/stages/03_upper_bound/short-columns-and-archimedean-size',
+          },
+          {
+            text: 'Local Divisibility & Elementary Divisors',
+            link: '/stages/03_upper_bound/local-divisibility-and-elementary-divisors',
+          },
+        ],
+      },
+      {
         text: 'Foundational Concepts',
         items: [
           { text: 'All Concept Cards', link: '/concepts/' },
@@ -163,6 +185,18 @@ export default defineConfig({
           { text: 'Theta Normal Form', link: '/concepts/theta-normal-form' },
           { text: 'Tight Frame', link: '/concepts/tight-frame' },
           { text: 'Schur Jet', link: '/concepts/schur-jet' },
+          {
+            text: 'Theta Correspondence',
+            link: '/concepts/theta-correspondence',
+          },
+          { text: 'Seesaw Duality', link: '/concepts/seesaw-duality' },
+          { text: 'Weyl Gauge', link: '/concepts/weyl-gauge' },
+          { text: 'Hecke Operator', link: '/concepts/hecke-operator' },
+          {
+            text: 'Elementary Divisor',
+            link: '/concepts/elementary-divisor',
+          },
+          { text: 'Frobenius Cycle', link: '/concepts/frobenius-cycle' },
         ],
       },
     ],

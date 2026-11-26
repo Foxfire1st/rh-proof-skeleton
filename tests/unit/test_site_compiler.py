@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from rh_pipeline.cli.build_site import main as build_site_main
+from rh_pipeline.models.audit import StaticScanSummary, VerificationStatus
 from rh_pipeline.models.concepts import ConceptCard, ConceptSource
 from rh_pipeline.site import (
     SiteBuildConfig,
@@ -19,6 +20,7 @@ from rh_pipeline.site import (
     render_page_glossary,
     split_zoom_levels,
 )
+from rh_pipeline.site.renderers import render_verification_banner
 
 COMMIT = "a" * 40
 
@@ -49,7 +51,9 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _make_fixture(tmp_path: Path, *, commit: str = COMMIT) -> tuple[Path, Path, Path]:
+def _make_fixture(
+    tmp_path: Path, *, commit: str = COMMIT, condensed: bool = False
+) -> tuple[Path, Path, Path]:
     repo = tmp_path / "repo"
     memory = tmp_path / "memory"
     out = tmp_path / "out_docs"
@@ -66,8 +70,8 @@ def _make_fixture(tmp_path: Path, *, commit: str = COMMIT) -> tuple[Path, Path, 
         "challenge_sorry_count": 2,
         "theorem_names": ["riemannHypothesis", "riemannZeta_eq_zero_re"],
         "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
-        "community_verification_notes_sha256": "c" * 64,
-        "upstream_static_scan_sha256": "d" * 64,
+        "community_verification_notes_sha256": None if condensed else "c" * 64,
+        "upstream_static_scan_sha256": None if condensed else "d" * 64,
         "scan": {
             "scan_scope": "entry",
             "files_scanned": ["src/Statements.lean", "src/Main.lean"],
@@ -354,6 +358,7 @@ def test_compile_site_end_to_end_determinism_and_pruning(tmp_path: Path) -> None
 
     overview = (out / "stages" / "00_statement" / "overview.md").read_text(encoding="utf-8")
     assert '<VerificationBanner build-status="unverified-locally"' in overview
+    assert 'repo-layout="legacy"' in overview
     assert ':solution-forbidden-count="0"' in overview
     assert ':challenge-sorry-count="2"' in overview
     assert ':theorem-count="2"' in overview
@@ -480,3 +485,54 @@ def test_preserves_backticks_in_stage_titles_and_deduplicates_concept_h1(tmp_pat
     assert "**Stage:** [Entry Theorems (`src/Main.lean`)](/stages/00_statement/main-theorems)" in (
         concept_md
     )
+
+
+def test_verification_banner_repo_layout(tmp_path: Path) -> None:
+    scan = StaticScanSummary(
+        scan_scope="entry",
+        files_scanned=("src/Statements.lean", "src/Main.lean"),
+        solution_findings=(),
+        challenge_findings=(),
+        challenge_sorry_count=2,
+    )
+    legacy_status = VerificationStatus(
+        schema_version="1.0.0",
+        upstream_commit=COMMIT,
+        lean_toolchain="leanprover/lean4:v4.37.0-rc1",
+        mathlib_rev="b" * 40,
+        build_status="unverified-locally",
+        scan_scope="entry",
+        files_scanned=("src/Statements.lean", "src/Main.lean"),
+        solution_forbidden_token_count=0,
+        challenge_sorry_count=2,
+        theorem_names=("riemannHypothesis",),
+        permitted_axioms=("propext", "Quot.sound", "Classical.choice"),
+        community_verification_notes_sha256="c" * 64,
+        upstream_static_scan_sha256="d" * 64,
+        scan=scan,
+    )
+    condensed_status = VerificationStatus(
+        schema_version="1.0.0",
+        upstream_commit=COMMIT,
+        lean_toolchain="leanprover/lean4:v4.37.0-rc1",
+        mathlib_rev="b" * 40,
+        build_status="unverified-locally",
+        scan_scope="entry",
+        files_scanned=("src/Statements.lean", "src/Main.lean"),
+        solution_forbidden_token_count=0,
+        challenge_sorry_count=2,
+        theorem_names=("riemannHypothesis",),
+        permitted_axioms=("propext", "Quot.sound", "Classical.choice"),
+        community_verification_notes_sha256=None,
+        upstream_static_scan_sha256=None,
+        scan=scan,
+    )
+
+    assert 'repo-layout="legacy"' in render_verification_banner(legacy_status)
+    assert 'repo-layout="condensed"' in render_verification_banner(condensed_status)
+
+    repo, memory, out = _make_fixture(tmp_path, condensed=True)
+    compile_site(SiteBuildConfig(repo_root=repo, memory_root=memory, out_docs_dir=out))
+    overview = (out / "stages" / "00_statement" / "overview.md").read_text(encoding="utf-8")
+    assert 'repo-layout="condensed"' in overview
+    assert 'repo-layout="condensed"' in (out / "index.md").read_text(encoding="utf-8")

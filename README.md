@@ -1,6 +1,6 @@
 # rh-proof-skeleton
 
-> **Verification & Epistemic Status:** Machine-generated provenance and verification facts will live in `audit/verification-status.json`. No mathematical claim in this explainer stands without an anchored Lean declaration or cited canonical mathematical source.
+> **Verification & Epistemic Status:** Machine-generated provenance and verification facts live in `audit/verification-status.json`. No mathematical claim in this explainer stands without an anchored Lean declaration or cited canonical mathematical source.
 
 A deterministic Lean 4 proof-skeleton extractor, validator suite, and static **VitePress** explainer pipeline for Levent Alpöge & Claude's 2026 Lean 4 proof of the Riemann Hypothesis and Generalized Riemann Hypothesis (GRH).
 
@@ -23,11 +23,24 @@ Every directory and Python package owns one bounded responsibility:
 | `src/rh_pipeline/validate/` | Deterministic quality gates (file-size rail, schema checks, Lean anchor resolution, concept-slug & citation checks, jargon-order lint) |
 | `src/rh_pipeline/site/` | Phase 4: static compiler reading `ar-rh-proof-skeleton` + `dag/` + `audit/` into VitePress docs |
 | `src/rh_pipeline/cli/` | Thin command wiring only (zero business logic) |
-| `skeleton/` | Generated deterministic `.lean` signature stubs grouped by proof stage (`00_statement/` … `20_grh/`) |
+| `skeleton/` | Generated deterministic `.lean` signature stubs grouped by the 8 condensed proof stages (`00_statement/` … `07_congruences/`) |
 | `dag/` | Authoritative `stage-map.json` + generated `dag.json` |
 | `audit/` | Machine-generated `provenance.json` + `verification-status.json` |
 | `site/` | VitePress static site shell, design tokens, and interactive concept/zoom/DAG components |
 | `tests/` | Focused unit tests and synthetic Lean 4 / concept fixtures |
+
+## CLI Commands
+
+The `rh-pipeline` package installs six command-line entry points:
+
+| Command | Purpose |
+|---|---|
+| `rh-audit` | Emit deterministic upstream provenance (`audit/provenance.json`) and static-scan verification status (`audit/verification-status.json`). |
+| `rh-check-upstream` | Compare an upstream checkout against pinned provenance and report commit, toolchain, layout, or digest drift. |
+| `rh-extract` | Extract provenance-preserving `.lean` stubs under `skeleton/` and the dependency graph `dag/dag.json` from `dag/stage-map.json`. |
+| `rh-validate` | Validate repository JSON schemas, Concept Cards, Lean anchors, and Level-1 jargon-order rules. |
+| `rh-build-site` | Compile validated Concept Cards, stage explainers, assets, and DAG data into the VitePress docs tree. |
+| `rh-file-size-gate` | Enforce deterministic line-count bands across `src/` and `tests/`. |
 
 ## Quality Gates
 

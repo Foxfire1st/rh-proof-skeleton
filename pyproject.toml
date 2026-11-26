@@ -24,6 +24,7 @@ dev = [
 [project.scripts]
 rh-audit = "rh_pipeline.cli.audit:main"
 rh-build-site = "rh_pipeline.cli.build_site:main"
+rh-check-upstream = "rh_pipeline.cli.check_upstream:main"
 rh-extract = "rh_pipeline.cli.extract:main"
 rh-file-size-gate = "rh_pipeline.validate.file_size:main"
 rh-validate = "rh_pipeline.cli.validate:main"

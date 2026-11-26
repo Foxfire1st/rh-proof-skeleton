@@ -18,20 +18,33 @@ from rh_pipeline.models.audit import (
 
 __all__ = ["AuditInputError", "collect_provenance"]
 
-_COMPARATOR_CONFIG_PATHS: tuple[str, ...] = (
-    "comparator.json",
-    "comparator/formal-conjectures.json",
-)
-_NOTE_PATHS: tuple[str, ...] = (
+_ROOT_COMPARATOR_CONFIG = "comparator.json"
+_FORMAL_CONJECTURES_CONFIG = "comparator/formal-conjectures.json"
+_VERIFICATION_NOTE_PATHS: tuple[str, ...] = (
     "verification/NOTES.md",
     "verification/static-scan.txt",
 )
-_COMPARATOR_KEYS: tuple[str, ...] = (
+_TRACKED_NOTE_PATHS: tuple[str, ...] = (
+    "CONTENTS.md",
+    "GUIDE.md",
+    "INDEX.md",
+    "README.md",
+    "REFERENCES.md",
+    *_VERIFICATION_NOTE_PATHS,
+)
+_COMPARATOR_REQUIRED_KEYS: tuple[str, ...] = (
     "challenge_module",
     "solution_module",
     "theorem_names",
     "permitted_axioms",
+)
+_COMPARATOR_OPTIONAL_KEYS: tuple[str, ...] = (
     "external_kernels",
+    "definition_names",
+    "enable_nanoda",
+)
+_COMPARATOR_ALLOWED_KEYS: frozenset[str] = frozenset(
+    (*_COMPARATOR_REQUIRED_KEYS, *_COMPARATOR_OPTIONAL_KEYS)
 )
 _REPLAY_SUMMARY_KEYS: tuple[str, ...] = (
     "lean",
@@ -147,15 +160,28 @@ def _read_mathlib_rev(upstream_root: Path) -> str:
 
 def _read_comparator_summary(upstream_root: Path, rel_path: str) -> ComparatorSummary:
     raw = _read_json_object(upstream_root / rel_path, label=rel_path)
-    _require_keys(raw, _COMPARATOR_KEYS, label=rel_path)
-    payload: dict[str, object] = {
-        "config_path": rel_path,
-        **{key: raw[key] for key in _COMPARATOR_KEYS},
-    }
+    _require_keys(raw, _COMPARATOR_REQUIRED_KEYS, label=rel_path)
+    extra = sorted(set(raw.keys()) - _COMPARATOR_ALLOWED_KEYS)
+    if extra:
+        raise AuditInputError(f"{rel_path} contains unknown keys: {extra}")
+    if not any(key in raw for key in _COMPARATOR_OPTIONAL_KEYS):
+        raise AuditInputError(
+            f"{rel_path} must include at least one of {list(_COMPARATOR_OPTIONAL_KEYS)}"
+        )
+    payload: dict[str, object] = {"config_path": rel_path, **raw}
     try:
         return ComparatorSummary.from_dict(payload)
     except ValueError as exc:
         raise AuditInputError(f"Invalid comparator config {rel_path}: {exc}") from exc
+
+
+def _has_comparator_dir(upstream_root: Path) -> bool:
+    comp_dir = upstream_root / "comparator"
+    if comp_dir.is_dir():
+        return True
+    if comp_dir.exists() or comp_dir.is_symlink():
+        raise AuditInputError(f"comparator path exists but is not a directory: {comp_dir}")
+    return False
 
 
 def _collect_comparator_digests(upstream_root: Path) -> dict[str, str]:
@@ -169,7 +195,24 @@ def _collect_comparator_digests(upstream_root: Path) -> dict[str, str]:
 
 
 def _collect_note_digests(upstream_root: Path) -> dict[str, str]:
-    return {rel: _sha256_file(upstream_root / rel, label=rel) for rel in _NOTE_PATHS}
+    verification_path = upstream_root / "verification"
+    if verification_path.exists() or verification_path.is_symlink():
+        if not verification_path.is_dir():
+            raise AuditInputError(
+                f"verification path exists but is not a directory: {verification_path}"
+            )
+        for rel in _VERIFICATION_NOTE_PATHS:
+            _require_file(upstream_root / rel, label=rel)
+    digests = {
+        rel: _sha256_file(upstream_root / rel, label=rel)
+        for rel in sorted(_TRACKED_NOTE_PATHS)
+        if (upstream_root / rel).is_file()
+    }
+    if "verification/NOTES.md" not in digests and "GUIDE.md" not in digests:
+        raise AuditInputError(
+            "Missing required upstream documentation: expected verification/NOTES.md or GUIDE.md"
+        )
+    return digests
 
 
 def _collect_replay_pin(replay_root: Path) -> ReplayPin:
@@ -205,15 +248,20 @@ def collect_provenance(
         lean_toolchain=_read_lean_toolchain(resolved),
         mathlib_rev=_read_mathlib_rev(resolved),
     )
-    comparators = tuple(
-        _read_comparator_summary(resolved, rel_path) for rel_path in _COMPARATOR_CONFIG_PATHS
+    has_comparator = _has_comparator_dir(resolved)
+    config_paths = (
+        (_ROOT_COMPARATOR_CONFIG, _FORMAL_CONJECTURES_CONFIG)
+        if has_comparator
+        else (_ROOT_COMPARATOR_CONFIG,)
     )
+    comparators = tuple(_read_comparator_summary(resolved, rel_path) for rel_path in config_paths)
+    comparator_digests = _collect_comparator_digests(resolved) if has_comparator else {}
     replay_pin = None if replay_root is None else _collect_replay_pin(replay_root)
     return ProvenanceRecord(
         schema_version=AUDIT_SCHEMA_VERSION,
         upstream=upstream,
         replay_pin=replay_pin,
         comparators=comparators,
-        comparator_file_digests=_collect_comparator_digests(resolved),
+        comparator_file_digests=comparator_digests,
         note_digests=_collect_note_digests(resolved),
     )

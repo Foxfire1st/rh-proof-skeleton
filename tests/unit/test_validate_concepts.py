@@ -313,8 +313,8 @@ def test_validate_corpus_real_skeleton_anchors(tmp_path: Path) -> None:
             extra_yaml=(
                 "lean_anchors:\n"
                 "  - 00_statement/statements.lean#RiemannZetaZerosOnLine\n"
-                "  - 00_statement/formal_conjectures_challenge.lean"
-                "#GRH.generalized_riemann_hypothesis\n"
+                "  - 00_statement/challenge.lean#LFunction_eq_zero_re\n"
+                "  - 00_statement/main.lean#riemannHypothesis\n"
             ),
         ),
     )

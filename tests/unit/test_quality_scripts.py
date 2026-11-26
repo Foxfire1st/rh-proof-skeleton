@@ -166,8 +166,9 @@ def toolchain(worktree: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pa
 
 
 def test_quality_runs_worktree_tools_in_ci_order(
-    worktree: Path, toolchain: tuple[Path, Path]
+    worktree: Path, toolchain: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.delenv("RH_MEMORY_ROOT", raising=False)
     bin_dir, trace = toolchain
     write_executable(
         bin_dir / "radon",
@@ -192,6 +193,19 @@ def test_quality_runs_worktree_tools_in_ci_order(
         "rh-validate --repo .",
         "pytest ",
     ]
+
+
+def test_quality_ci_order_ignores_inherited_memory_root(
+    worktree: Path,
+    toolchain: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inherited_memory = tmp_path / "inherited-memory"
+    inherited_memory.mkdir()
+    monkeypatch.setenv("RH_MEMORY_ROOT", str(inherited_memory))
+    with pytest.MonkeyPatch.context() as isolated:
+        test_quality_runs_worktree_tools_in_ci_order(worktree, toolchain, isolated)
 
 
 def test_quality_passes_memory_root_to_rh_validate(

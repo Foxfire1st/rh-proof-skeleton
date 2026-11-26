@@ -254,3 +254,60 @@ def test_synthetic_lean_audit_fixtures() -> None:
     unclosed_src = (_FIXTURE_DIR / "unclosed_block_comment.lean").read_text(encoding="utf-8")
     with pytest.raises(AuditScanError, match=r"unclosed\.lean:5"):
         scan_lean_source(unclosed_src, rel_path="unclosed.lean", role="solution")
+
+
+def _make_condensed_repo(root: Path) -> None:
+    _write_repo_file(root, "Challenge.lean", "theorem target : True := by\n  sorry\n")
+    _write_repo_file(root, "src/Statements.lean", "def stmt : Prop := True\n")
+    _write_repo_file(root, "src/Main.lean", "theorem ok : True := trivial\n")
+    _write_repo_file(root, "src/Stage/Lemma.lean", "theorem lemma_ok : True := trivial\n")
+    _write_repo_file(root, "scripts/check.lean", "theorem ignored : True := by\n  sorry\n")
+
+
+def test_scan_upstream_repo_condensed_entry_and_full(tmp_path: Path) -> None:
+    _make_condensed_repo(tmp_path)
+
+    entry = scan_upstream_repo(tmp_path, scope="entry")
+    assert entry.files_scanned == ("Challenge.lean", "src/Main.lean", "src/Statements.lean")
+    assert entry.solution_findings == ()
+    assert entry.challenge_sorry_count == 1
+    assert entry.challenge_findings == (
+        StaticScanFinding(rel_path="Challenge.lean", line=2, token="sorry", role="challenge"),
+    )
+
+    full = scan_upstream_repo(tmp_path, scope="full")
+    assert full.files_scanned == (
+        "Challenge.lean",
+        "src/Main.lean",
+        "src/Stage/Lemma.lean",
+        "src/Statements.lean",
+    )
+    assert "scripts/check.lean" not in full.files_scanned
+    assert full.solution_findings == ()
+    assert full.challenge_sorry_count == 1
+
+
+def test_scan_upstream_repo_challenge_resolution_fail_closed(tmp_path: Path) -> None:
+    missing_challenge = tmp_path / "missing-challenge"
+    _write_repo_file(missing_challenge, "src/Statements.lean", "def s : Prop := True\n")
+    _write_repo_file(missing_challenge, "src/Main.lean", "theorem m : True := trivial\n")
+    with pytest.raises(AuditInputError, match="challenge Lean file missing"):
+        scan_upstream_repo(missing_challenge, scope="entry")
+    with pytest.raises(AuditInputError, match="challenge Lean file missing"):
+        scan_upstream_repo(missing_challenge, scope="full")
+
+    both_challenges = tmp_path / "both-challenges"
+    _make_condensed_repo(both_challenges)
+    _write_repo_file(both_challenges, "src/Challenge.lean", "theorem dup : True := by sorry\n")
+    with pytest.raises(AuditInputError, match="Ambiguous challenge Lean files"):
+        scan_upstream_repo(both_challenges, scope="entry")
+    with pytest.raises(AuditInputError, match="Ambiguous challenge Lean files"):
+        scan_upstream_repo(both_challenges, scope="full")
+
+    comp_file = tmp_path / "comp-file"
+    _make_condensed_repo(comp_file)
+    _write_repo_file(comp_file, "comparator", "not a directory\n")
+    with pytest.raises(AuditInputError, match="not a directory"):
+        scan_upstream_repo(comp_file, scope="entry")
+    with pytest.raises(AuditInputError, match="not a directory"):
+        scan_upstream_repo(comp_file, scope="full")

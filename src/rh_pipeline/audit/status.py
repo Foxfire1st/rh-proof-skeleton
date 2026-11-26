@@ -23,12 +23,27 @@ def _dedupe_preserve_order(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(values))
 
 
-def _require_note_digest(note_digests: Mapping[str, str], key: str) -> str:
-    """Return a required note SHA-256 digest or raise AuditInputError."""
-    digest = note_digests.get(key)
-    if not digest:
-        raise AuditInputError(f"Missing required verification note digest: {key}")
-    return digest
+def _resolve_verification_digests(
+    note_digests: Mapping[str, str],
+) -> tuple[str | None, str | None]:
+    """Return paired verification digests or (None, None) when verification notes are absent."""
+    has_notes = NOTES_DIGEST_KEY in note_digests
+    has_scan = STATIC_SCAN_DIGEST_KEY in note_digests
+    if not has_notes and not has_scan:
+        return None, None
+    if not has_notes:
+        raise AuditInputError(f"Missing required verification note digest: {NOTES_DIGEST_KEY}")
+    if not has_scan:
+        raise AuditInputError(
+            f"Missing required verification note digest: {STATIC_SCAN_DIGEST_KEY}"
+        )
+    notes_digest = note_digests[NOTES_DIGEST_KEY]
+    scan_digest = note_digests[STATIC_SCAN_DIGEST_KEY]
+    if not notes_digest:
+        raise AuditInputError(f"Empty verification note digest: {NOTES_DIGEST_KEY}")
+    if not scan_digest:
+        raise AuditInputError(f"Empty verification note digest: {STATIC_SCAN_DIGEST_KEY}")
+    return notes_digest, scan_digest
 
 
 def build_verification_status(
@@ -42,8 +57,7 @@ def build_verification_status(
     permitted_axioms = _dedupe_preserve_order(
         axiom for comp in provenance.comparators for axiom in comp.permitted_axioms
     )
-    notes_sha256 = _require_note_digest(provenance.note_digests, NOTES_DIGEST_KEY)
-    static_scan_sha256 = _require_note_digest(provenance.note_digests, STATIC_SCAN_DIGEST_KEY)
+    notes_sha256, static_scan_sha256 = _resolve_verification_digests(provenance.note_digests)
 
     return VerificationStatus(
         schema_version=provenance.schema_version,

@@ -11,168 +11,67 @@
         {
           "preserve_defs": true,
           "skeleton_file": "00_statement/challenge.lean",
-          "upstream_path": "src/Challenge.lean"
+          "upstream_path": "Challenge.lean"
         },
         {
           "preserve_defs": false,
           "skeleton_file": "00_statement/main.lean",
           "upstream_path": "src/Main.lean"
-        },
-        {
-          "preserve_defs": true,
-          "skeleton_file": "00_statement/formal_conjectures_statement.lean",
-          "upstream_path": "comparator/FormalConjecturesStatement.lean"
-        },
-        {
-          "preserve_defs": false,
-          "skeleton_file": "00_statement/formal_conjectures_challenge.lean",
-          "upstream_path": "comparator/FormalConjecturesChallenge.lean"
         }
       ],
       "order": 0,
       "stage_id": "00_statement",
-      "summary": "Mathlib and formal-conjectures statements of the Riemann Hypothesis and Generalized Riemann Hypothesis, comparator challenges, and Main entry theorems.",
+      "summary": "Mathlib statements of the Riemann Hypothesis and Generalized Riemann Hypothesis, root comparator challenge contract, and Main entry theorems (formal-conjectures comparator/ pending re-integration on condensed main).",
       "title": "Formal Statements & Challenge Contracts"
     },
     {
       "files": [],
       "order": 1,
-      "stage_id": "01_stepanov_determinant",
-      "summary": "Auxiliary polynomial and Stepanov determinant construction at the foundation of the multiplicity method.",
-      "title": "Stepanov Determinant"
+      "stage_id": "01_reduction",
+      "summary": "From a one-sided non-vanishing bound in Re(s) > 1/2 to zeros on the critical line, admissible data, twisted lattices, heights, prime sums, and the main inequality.",
+      "title": "The Theorem and Its Reduction"
     },
     {
       "files": [],
       "order": 2,
-      "stage_id": "02_cm_curve_derivations",
-      "summary": "Invariant derivation D with D^p = 0 on a CM curve for inert primes p and p-adic divisibility of theta derivatives.",
-      "title": "CM Curve Derivations and p-adic Divisibility"
+      "stage_id": "02_derivatives",
+      "summary": "CM field characters, formal group and exponential factors, integral vacuum, and p-adic divisibility of theta derivatives that count primes.",
+      "title": "Derivatives of Theta Functions"
     },
     {
       "files": [],
       "order": 3,
-      "stage_id": "03_quadric_theta_automorphy",
-      "summary": "Writing qN = M^k + R via path quadrics and realizing automorphy of N through theta period integrals on the sixfold cover of GL_5.",
-      "title": "Quadric Decomposition and Sixfold-Cover Theta Automorphy"
+      "stage_id": "03_upper_bound",
+      "summary": "Theta kernels between definite unitary spaces, source and target forms, chains of lifts, iterated seesaw identity, divisibility, size bounds, and short source forms.",
+      "title": "Upper Bound: Composite Theta Lift — Theorem A"
     },
     {
       "files": [],
       "order": 4,
-      "stage_id": "04_stepanov_bootstrap",
-      "summary": "Establishing W(1_S) >= 0 through a determinant and reinterpreting it as a multiplicity-one Stepanov bootstrap.",
-      "title": "Positivity via Stepanov Determinant Bootstrap"
+      "stage_id": "04_spanning",
+      "summary": "Second moment of normalized Poincare series, multiplicity equality, Bessel functions, unfolding, main and remaining terms, and spanning.",
+      "title": "Spanning: Second Moment — Theorem B"
     },
     {
       "files": [],
       "order": 5,
-      "stage_id": "05_von_mangoldt_guinand_weil",
-      "summary": "Switching definitively to the von Mangoldt function Lambda with the Guinand-Weil sign and variance test-function trick.",
-      "title": "Von Mangoldt Switch and Guinand-Weil Variance Test Function"
+      "stage_id": "05_determinant",
+      "summary": "Regular families of twists, norms of theta lifts, Siegel-Weil exchange and square identities, chain determinants, and auxiliary forms.",
+      "title": "Lower Bound: The Determinant — Theorem C, Part 1"
     },
     {
       "files": [],
       "order": 6,
-      "stage_id": "06_zero_free_region_positivity",
-      "summary": "Applying W(1_(0,1] + (~X^eta) 1_(0,1/X]) >= 0 to drive the zero-free threshold beyond 1 - eta.",
-      "title": "Positivity Inequality for Zero-Free Width"
+      "stage_id": "06_one_lift",
+      "summary": "Single theta lifts between unitary spaces, Hecke comparison operators, periods of false lifts, and Hecke L-values as squared norms and their valuations.",
+      "title": "Lower Bound: One Lift — Theorem C, Part 2"
     },
     {
       "files": [],
       "order": 7,
-      "stage_id": "07_ggp_period_determinants",
-      "summary": "Constructing determinants for W(.) carrying Gan-Gross-Prasad periods with interlacing and bounded non-interlacing weights.",
-      "title": "Determinants for GGP Periods and Interlacing Weights"
-    },
-    {
-      "files": [],
-      "order": 8,
-      "stage_id": "08_iterated_theta_lifts",
-      "summary": "Iterated theta lifts U(X_0) -> U(X_1) -> ... -> U(X_m) between totally definite unitary groups winning multiplicity m around sqrt(X).",
-      "title": "Iterated Unitary Theta Lifts"
-    },
-    {
-      "files": [],
-      "order": 9,
-      "stage_id": "09_lift_norms_and_divisibility",
-      "summary": "Norms and levels of iterated lifts and cancellation of order-m terms with divisibility via Chowla-Selberg, Weyl, and Siegel mass formulas.",
-      "title": "Norms, Levels, and Chowla-Selberg / Weyl / Siegel Mass Divisibility"
-    },
-    {
-      "files": [],
-      "order": 10,
-      "stage_id": "10_iterated_lift_divisibility_bound",
-      "summary": "Establishing a sufficient lower bound on the divisibility of the m-fold iterated theta lift.",
-      "title": "Lower Bound on Iterated Lift Divisibility"
-    },
-    {
-      "files": [],
-      "order": 11,
-      "stage_id": "11_iwasawa_tower",
-      "summary": "Constructing the Iwasawa tower by analogy to pigeonhole arguments over finite field extensions F_{q^n}/F_q.",
-      "title": "Iwasawa Tower Pigeonhole Analogy"
-    },
-    {
-      "files": [],
-      "order": 12,
-      "stage_id": "12_seesaw_bessel_period",
-      "summary": "Seesaw identity identifying the period of the iterated lift as a Bessel period independent of the Hecke characters via Rallis.",
-      "title": "Seesaw Identity and Rallis Bessel Period"
-    },
-    {
-      "files": [],
-      "order": 13,
-      "stage_id": "13_bost_slope_inequality",
-      "summary": "Applying the Bost slope inequality from Arakelov geometry to bound arithmetic degrees.",
-      "title": "Bost Slope Inequality"
-    },
-    {
-      "files": [],
-      "order": 14,
-      "stage_id": "14_lift_cost_and_division",
-      "summary": "Precise accounting of each lift's cost, overcoming the a priori 2/3 barrier through twisting and division.",
-      "title": "Lift Cost Accounting and Breaking the 2/3 Barrier"
-    },
-    {
-      "files": [],
-      "order": 15,
-      "stage_id": "15_hecke_integral_structure",
-      "summary": "Gluing an integral structure across Hecke characters to achieve extra averaging and a greatest-common-divisor effect.",
-      "title": "Glued Integral Structure Across Hecke Characters"
-    },
-    {
-      "files": [],
-      "order": 16,
-      "stage_id": "16_relative_trace_formula",
-      "summary": "Relative trace formula via sixfold-cover GL_5 automorphy of mu, reducing by Cauchy-Schwarz to projected Poincare series norms and approximate column orthogonality.",
-      "title": "Relative Trace Formula and Poincare Series Orthogonality"
-    },
-    {
-      "files": [],
-      "order": 17,
-      "stage_id": "17_weakened_vandiver",
-      "summary": "Handling surviving classes in H^1(O_E[1/ell], Q_ell/Z_ell(-e)) not killed by twisting via a significant weakening of Vandiver.",
-      "title": "Cohomology Classes and Weakened Vandiver"
-    },
-    {
-      "files": [],
-      "order": 18,
-      "stage_id": "18_covolumes_and_congruences",
-      "summary": "Computing covolumes, theta series indices, and congruences between iterated lifts and automorphic forms.",
-      "title": "Covolumes, Theta Series Index, and Lift Congruences"
-    },
-    {
-      "files": [],
-      "order": 19,
-      "stage_id": "19_behrend_iwasawa_choice",
-      "summary": "Selecting the exact Iwasawa tower parameters using Behrend's construction.",
-      "title": "Precise Iwasawa Tower Choice via Behrend"
-    },
-    {
-      "files": [],
-      "order": 20,
-      "stage_id": "20_grh",
-      "summary": "Completing the proof of the Generalized Riemann Hypothesis and deducing the classical Riemann Hypothesis.",
-      "title": "Generalized Riemann Hypothesis (GRH)"
+      "stage_id": "07_congruences",
+      "summary": "Existence of regular twist families, attached Galois representations, first-order congruences, anticyclotomic Selmer bounds, local loss, and crystalline lifting.",
+      "title": "Lower Bound: Congruences & Galois Representations — Theorem C, Part 3"
     }
   ]
 }

@@ -84,6 +84,27 @@ summary:focus-visible,
   outline-offset: 2px;
 }
 
+/* Keep the VitePress navbar title cleanly framed inside the 272px sidebar header. */
+.VPNavBarTitle .title,
+.VPNavBarTitle.has-sidebar .title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.VPNavBarTitle .title > span,
+.VPNavBarTitle.has-sidebar .title > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Editorial typography & comfortable reading measure inside docs. */
 .vp-doc {
   color: var(--rh-text-primary);

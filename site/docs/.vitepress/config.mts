@@ -22,6 +22,7 @@ export default defineConfig({
     math: true,
   },
   themeConfig: {
+    siteTitle: 'RH Proof Explainer',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Proof Journey', link: '/stages/00_statement/proof-journey' },

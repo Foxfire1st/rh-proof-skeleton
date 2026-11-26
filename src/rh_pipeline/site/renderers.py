@@ -79,10 +79,14 @@ def upstream_blob_url(
 
 def render_verification_banner(status: VerificationStatus) -> str:
     """Render the `<VerificationBanner />` Vue component tag from verified audit metadata."""
+    repo_layout = (
+        "legacy" if status.community_verification_notes_sha256 is not None else "condensed"
+    )
     attrs = (
         f'build-status="{_esc(status.build_status)}"',
         f'upstream-commit="{_esc(status.upstream_commit)}"',
         f'upstream-repo="{_esc(UPSTREAM_REPO_URL)}"',
+        f'repo-layout="{repo_layout}"',
         f'lean-toolchain="{_esc(status.lean_toolchain)}"',
         f'mathlib-rev="{_esc(status.mathlib_rev)}"',
         f'scan-scope="{_esc(status.scan_scope)}"',

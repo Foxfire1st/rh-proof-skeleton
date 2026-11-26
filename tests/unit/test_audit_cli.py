@@ -295,3 +295,121 @@ def test_cli_input_and_scan_errors_exit_2_without_writing(
     assert audit_main(["--upstream", str(scan_upstream), "--out", str(out_scan)]) == 2
     assert "ERROR:" in capsys.readouterr().err
     assert not out_scan.exists()
+
+
+def _create_condensed_upstream(root: Path, overrides: dict[str, str] | None = None) -> Path:
+    """Create a minimal valid condensed-edition synthetic upstream checkout."""
+    root.mkdir(parents=True, exist_ok=True)
+    manifest = {"packages": [{"name": "mathlib", "rev": _MATHLIB_REV}]}
+    root_comp = {
+        "challenge_module": "Challenge",
+        "solution_module": "Main",
+        "theorem_names": ["riemann_hypothesis"],
+        "definition_names": [],
+        "permitted_axioms": ["propext", "Classical.choice", "Quot.sound"],
+        "enable_nanoda": True,
+    }
+    files: dict[str, str] = {
+        "lean-toolchain": "leanprover/lean4:v4.37.0-rc1\n",
+        "lake-manifest.json": json.dumps(manifest) + "\n",
+        "comparator.json": json.dumps(root_comp) + "\n",
+        "README.md": "# RH\n",
+        "GUIDE.md": "# Guide\n",
+        "CONTENTS.md": "# Contents\n",
+        "INDEX.md": "# Index\n",
+        "REFERENCES.md": "# References\n",
+        "Challenge.lean": _CLEAN_CHALLENGE,
+        "src/Statements.lean": "def stmt : Prop := True\n",
+        "src/Main.lean": _CLEAN_SOLUTION,
+        "src/ExtraModule.lean": "theorem extra_ok : True := trivial\n",
+        "scripts/helper.lean": "theorem ignored : True := by sorry\n",
+    }
+    if overrides:
+        files.update(overrides)
+    _write_files(root, files)
+    _git_init_and_commit(root)
+    return root
+
+
+def test_build_verification_status_nullable_and_paired_validation() -> None:
+    provenance, scan = _sample_provenance_and_scan()
+    condensed_prov = ProvenanceRecord(
+        provenance.schema_version,
+        provenance.upstream,
+        None,
+        provenance.comparators[:1],
+        {},
+        {"GUIDE.md": "cc" * 32},
+    )
+    status = build_verification_status(condensed_prov, scan)
+    assert status.community_verification_notes_sha256 is None
+    assert status.upstream_static_scan_sha256 is None
+
+    rendered = json.loads(status.to_json())
+    assert rendered["community_verification_notes_sha256"] is None
+    assert rendered["upstream_static_scan_sha256"] is None
+    assert VerificationStatus.from_dict(rendered) == status
+
+    for field_name in ("community_verification_notes_sha256", "upstream_static_scan_sha256"):
+        with pytest.raises(ValueError, match="must not be empty"):
+            VerificationStatus.from_dict({**rendered, field_name: ""})
+        with pytest.raises(ValueError, match="must be a string"):
+            VerificationStatus.from_dict({**rendered, field_name: 123})
+
+    for bad_notes in (
+        {"verification/static-scan.txt": "bb" * 32},
+        {"verification/NOTES.md": "", "verification/static-scan.txt": "bb" * 32},
+        {"verification/NOTES.md": "aa" * 32, "verification/static-scan.txt": ""},
+    ):
+        bad_prov = ProvenanceRecord(
+            provenance.schema_version,
+            provenance.upstream,
+            None,
+            provenance.comparators,
+            provenance.comparator_file_digests,
+            bad_notes,
+        )
+        with pytest.raises(AuditInputError):
+            build_verification_status(bad_prov, scan)
+
+
+def test_cli_condensed_edition_entry_full_replay_and_failure(
+    tmp_path: Path, capsys: CaptureFixture[str]
+) -> None:
+    upstream = _create_condensed_upstream(tmp_path / "condensed")
+    replay = _create_synthetic_replay(tmp_path / "replay")
+    out_entry = tmp_path / "out_entry"
+
+    assert audit_main(["--upstream", str(upstream), "--out", str(out_entry)]) == 0
+    assert "solution_forbidden=0" in capsys.readouterr().out
+    prov, stat = _load_artifacts(out_entry)
+    assert prov.comparator_file_digests == {}
+    assert len(prov.comparators) == 1
+    assert prov.comparators[0].enable_nanoda is True
+    assert prov.comparators[0].definition_names == ()
+    assert prov.comparators[0].external_kernels == {}
+    assert stat.files_scanned == ("Challenge.lean", "src/Main.lean", "src/Statements.lean")
+    assert stat.challenge_sorry_count == 1
+    assert stat.community_verification_notes_sha256 is None
+    assert stat.upstream_static_scan_sha256 is None
+
+    out_full = tmp_path / "out_full"
+    full_args = ["--upstream", str(upstream), "--replay", str(replay), "--scope", "full"]
+    assert audit_main([*full_args, "--out", str(out_full)]) == 0
+    prov_full, stat_full = _load_artifacts(out_full)
+    assert prov_full.replay_pin is not None
+    assert stat_full.files_scanned == (
+        "Challenge.lean",
+        "src/ExtraModule.lean",
+        "src/Main.lean",
+        "src/Statements.lean",
+    )
+
+    bad_challenge = _create_condensed_upstream(
+        tmp_path / "condensed_bad",
+        overrides={"Challenge.lean": "axiom bogus : False\ntheorem t : True := by sorry\n"},
+    )
+    out_bad = tmp_path / "out_bad"
+    assert audit_main(["--upstream", str(bad_challenge), "--out", str(out_bad)]) == 1
+    _, bad_stat = _load_artifacts(out_bad)
+    assert bad_stat.solution_forbidden_token_count == 1

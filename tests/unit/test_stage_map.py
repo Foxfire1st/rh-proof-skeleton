@@ -116,11 +116,20 @@ def test_lean_module_name_for_path_invalid(bad_path: str) -> None:
 
 def test_load_real_stage_map() -> None:
     stages = load_stage_map(_REPO_ROOT / "dag" / "stage-map.json")
-    assert len(stages) == 21
-    assert [stage.order for stage in stages] == list(range(21))
-    assert stages[0].stage_id == "00_statement"
-    assert len(stages[0].files) == 5
-    assert stages[-1].stage_id == "20_grh"
+    assert len(stages) == 8
+    assert [stage.order for stage in stages] == list(range(8))
+    assert [stage.stage_id for stage in stages] == [
+        "00_statement",
+        "01_reduction",
+        "02_derivatives",
+        "03_upper_bound",
+        "04_spanning",
+        "05_determinant",
+        "06_one_lift",
+        "07_congruences",
+    ]
+    assert len(stages[0].files) == 3
+    assert all(len(stage.files) == 0 for stage in stages[1:])
 
 
 def test_load_stage_map_sorts_by_order(tmp_path: Path) -> None:
@@ -308,8 +317,8 @@ def test_committed_dag_and_stage00_skeleton_round_trip() -> None:
     dag_raw = (repo_root / "dag" / "dag.json").read_text(encoding="utf-8")
     dag = DagGraph.from_dict(json.loads(dag_raw))
     assert dag.to_json() == dag_raw
-    assert len(dag.stages) == 21
-    assert len(dag.nodes) == 5
+    assert len(dag.stages) == 8
+    assert len(dag.nodes) == 3
 
     status_raw = json.loads(
         (repo_root / "audit" / "verification-status.json").read_text(encoding="utf-8")
@@ -317,8 +326,9 @@ def test_committed_dag_and_stage00_skeleton_round_trip() -> None:
     assert dag.upstream_commit == status_raw["upstream_commit"]
 
     nodes = {node.id: node for node in dag.nodes}
-    assert nodes["00_statement/main"].depends_on == ("00_statement/statements",)
-    assert nodes["00_statement/challenge"].depends_on == ()
+    assert nodes["00_statement/statements"].depends_on == ()
+    assert nodes["00_statement/challenge"].depends_on == ("00_statement/statements",)
+    assert nodes["00_statement/main"].depends_on == ()
 
     for node in dag.nodes:
         skel_path = repo_root / "skeleton" / node.skeleton_file

@@ -284,3 +284,147 @@ def test_collect_provenance_rejects_bool_module_count_in_replay(tmp_path: Path) 
     )
     with pytest.raises(AuditInputError):
         collect_provenance(upstream_root, replay_root=replay_root)
+
+
+def _make_condensed_upstream_repo(root: Path) -> tuple[Path, str]:
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "lean-toolchain").write_text("leanprover/lean4:v4.37.0-rc1\n", encoding="utf-8")
+    _write_json(
+        root / "lake-manifest.json",
+        {
+            "version": "1.1.0",
+            "packages": [{"name": "mathlib", "rev": "abcdef1234567890"}],
+        },
+    )
+    _write_json(
+        root / "comparator.json",
+        {
+            "challenge_module": "Challenge",
+            "solution_module": "Main",
+            "theorem_names": ["riemann_hypothesis"],
+            "definition_names": [],
+            "permitted_axioms": ["propext", "Classical.choice", "Quot.sound"],
+            "enable_nanoda": True,
+        },
+    )
+    for doc_name in ("README.md", "GUIDE.md", "CONTENTS.md", "INDEX.md", "REFERENCES.md"):
+        (root / doc_name).write_text(f"# {doc_name}\n", encoding="utf-8")
+    head = _init_git_repo(root)
+    return root, head
+
+
+def test_collect_provenance_condensed_edition_and_roundtrip(tmp_path: Path) -> None:
+    upstream_root, head = _make_condensed_upstream_repo(tmp_path / "condensed-rh")
+    record = collect_provenance(upstream_root)
+
+    assert record.upstream.head_commit == head
+    assert record.comparator_file_digests == {}
+    assert len(record.comparators) == 1
+    comp = record.comparators[0]
+    assert comp == ComparatorSummary(
+        config_path="comparator.json",
+        challenge_module="Challenge",
+        solution_module="Main",
+        theorem_names=("riemann_hypothesis",),
+        permitted_axioms=("propext", "Classical.choice", "Quot.sound"),
+        external_kernels={},
+        definition_names=(),
+        enable_nanoda=True,
+    )
+    assert list(comp.to_dict().keys()) == [
+        "challenge_module",
+        "config_path",
+        "definition_names",
+        "enable_nanoda",
+        "external_kernels",
+        "permitted_axioms",
+        "solution_module",
+        "theorem_names",
+    ]
+    assert list(record.note_digests.keys()) == [
+        "CONTENTS.md",
+        "GUIDE.md",
+        "INDEX.md",
+        "README.md",
+        "REFERENCES.md",
+    ]
+    assert ProvenanceRecord.from_dict(record.to_dict()) == record
+
+
+def test_comparator_summary_optional_fields_and_strict_enable_nanoda() -> None:
+    minimal: dict[str, Any] = {
+        "config_path": "comparator.json",
+        "challenge_module": "Challenge",
+        "solution_module": "Main",
+        "theorem_names": ["thm"],
+        "permitted_axioms": ["propext"],
+    }
+    parsed = ComparatorSummary.from_dict(minimal)
+    assert parsed.external_kernels == {}
+    assert parsed.definition_names == ()
+    assert parsed.enable_nanoda is None
+    assert sorted(parsed.to_dict().keys()) == [
+        "challenge_module",
+        "config_path",
+        "definition_names",
+        "enable_nanoda",
+        "external_kernels",
+        "permitted_axioms",
+        "solution_module",
+        "theorem_names",
+    ]
+
+    for bad_bool in (0, 1, "true"):
+        with pytest.raises(ValueError, match="boolean"):
+            ComparatorSummary.from_dict({**minimal, "enable_nanoda": bad_bool})
+
+
+def test_collect_provenance_condensed_fail_closed_cases(tmp_path: Path) -> None:
+    no_docs, _ = _make_condensed_upstream_repo(tmp_path / "no-docs")
+    (no_docs / "GUIDE.md").unlink()
+    with pytest.raises(AuditInputError, match=r"verification/NOTES\.md or GUIDE\.md"):
+        collect_provenance(no_docs)
+
+    half_verif, _ = _make_condensed_upstream_repo(tmp_path / "half-verif")
+    (half_verif / "verification").mkdir()
+    (half_verif / "verification" / "NOTES.md").write_text("notes\n", encoding="utf-8")
+    with pytest.raises(AuditInputError, match=r"verification/static-scan\.txt"):
+        collect_provenance(half_verif)
+
+    bad_comp_path, _ = _make_condensed_upstream_repo(tmp_path / "comp-file")
+    (bad_comp_path / "comparator").write_text("not a dir\n", encoding="utf-8")
+    with pytest.raises(AuditInputError, match="not a directory"):
+        collect_provenance(bad_comp_path)
+
+    bad_verif_path, _ = _make_condensed_upstream_repo(tmp_path / "verif-file")
+    (bad_verif_path / "verification").write_text("not a dir\n", encoding="utf-8")
+    with pytest.raises(AuditInputError, match="not a directory"):
+        collect_provenance(bad_verif_path)
+
+    unknown_key_repo, _ = _make_condensed_upstream_repo(tmp_path / "unknown-key")
+    _write_json(
+        unknown_key_repo / "comparator.json",
+        {
+            "challenge_module": "Challenge",
+            "solution_module": "Main",
+            "theorem_names": ["riemann_hypothesis"],
+            "permitted_axioms": ["propext"],
+            "enable_nanoda": True,
+            "unexpected_option": 123,
+        },
+    )
+    with pytest.raises(AuditInputError, match="unknown keys"):
+        collect_provenance(unknown_key_repo)
+
+    bare_comp_repo, _ = _make_condensed_upstream_repo(tmp_path / "bare-comp")
+    _write_json(
+        bare_comp_repo / "comparator.json",
+        {
+            "challenge_module": "Challenge",
+            "solution_module": "Main",
+            "theorem_names": ["riemann_hypothesis"],
+            "permitted_axioms": ["propext"],
+        },
+    )
+    with pytest.raises(AuditInputError, match="must include at least one of"):
+        collect_provenance(bare_comp_repo)

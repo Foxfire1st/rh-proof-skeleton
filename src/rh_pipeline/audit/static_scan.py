@@ -30,8 +30,10 @@ ENTRY_SCAN_FILES: tuple[str, ...] = (
     "src/Statements.lean",
 )
 CHALLENGE_FILES: frozenset[str] = frozenset(
-    {"src/Challenge.lean", "comparator/FormalConjecturesChallenge.lean"}
+    {"Challenge.lean", "src/Challenge.lean", "comparator/FormalConjecturesChallenge.lean"}
 )
+_PRIMARY_CHALLENGE_CANDIDATES: tuple[str, ...] = ("Challenge.lean", "src/Challenge.lean")
+_REQUIRED_ENTRY_FILES: tuple[str, ...] = ("src/Statements.lean", "src/Main.lean")
 FORBIDDEN_TOKENS: frozenset[str] = frozenset(
     {
         "sorry",
@@ -47,7 +49,6 @@ FORBIDDEN_TOKENS: frozenset[str] = frozenset(
 )
 ATTRIBUTE_TOKENS: frozenset[str] = frozenset({"extern", "implemented_by"})
 _VALID_SCOPES: frozenset[str] = frozenset({"entry", "full"})
-_FULL_SCAN_DIRS: tuple[str, ...] = ("comparator", "src")
 
 # Lean identifiers allow Unicode letters and trailing primes (e.g. `hχ`, `hre'`),
 # while `.` acts as a boundary so qualified names like `Lean.ofReduceBool` expose their leaf token.
@@ -233,22 +234,62 @@ def scan_lean_source(
     return _collect_findings(_tokenize_lean(source, rel_path), rel_path=rel_path, role=role)
 
 
+def _resolve_primary_challenge_file(upstream_root: Path) -> str:
+    present = [
+        rel_path
+        for rel_path in _PRIMARY_CHALLENGE_CANDIDATES
+        if (upstream_root / rel_path).is_file()
+    ]
+    if not present:
+        raise AuditInputError(
+            "Required challenge Lean file missing: expected Challenge.lean or src/Challenge.lean"
+        )
+    if len(present) > 1:
+        raise AuditInputError(
+            "Ambiguous challenge Lean files: both Challenge.lean and src/Challenge.lean exist"
+        )
+    return present[0]
+
+
+def _collect_optional_comparator_files(
+    upstream_root: Path, *, pattern: str, recursive: bool
+) -> list[str]:
+    comp_dir = upstream_root / "comparator"
+    if comp_dir.is_dir():
+        matches = comp_dir.rglob(pattern) if recursive else comp_dir.glob(pattern)
+        return [p.relative_to(upstream_root).as_posix() for p in matches if p.is_file()]
+    if comp_dir.exists() or comp_dir.is_symlink():
+        raise AuditInputError(f"Upstream comparator path is not a directory: {comp_dir}")
+    return []
+
+
 def _resolve_entry_files(upstream_root: Path) -> tuple[str, ...]:
-    for rel_path in ENTRY_SCAN_FILES:
+    targets: set[str] = set()
+    for rel_path in _REQUIRED_ENTRY_FILES:
         if not (upstream_root / rel_path).is_file():
             raise AuditInputError(f"Required entry Lean file missing: {rel_path}")
-    return tuple(sorted(ENTRY_SCAN_FILES))
+        targets.add(rel_path)
+    targets.add(_resolve_primary_challenge_file(upstream_root))
+    targets.update(
+        _collect_optional_comparator_files(
+            upstream_root, pattern="FormalConjectures*.lean", recursive=False
+        )
+    )
+    return tuple(sorted(targets))
 
 
 def _resolve_full_files(upstream_root: Path) -> tuple[str, ...]:
-    rel_paths: list[str] = []
-    for subdir in _FULL_SCAN_DIRS:
-        dir_path = upstream_root / subdir
-        if not dir_path.is_dir():
-            raise AuditInputError(f"Required upstream directory missing: {subdir}")
-        rel_paths.extend(
-            p.relative_to(upstream_root).as_posix() for p in dir_path.rglob("*.lean") if p.is_file()
-        )
+    src_dir = upstream_root / "src"
+    if not src_dir.is_dir():
+        raise AuditInputError("Required upstream directory missing: src")
+    challenge_rel = _resolve_primary_challenge_file(upstream_root)
+    rel_paths: set[str] = {
+        p.relative_to(upstream_root).as_posix() for p in src_dir.rglob("*.lean") if p.is_file()
+    }
+    rel_paths.add(challenge_rel)
+    rel_paths.update(
+        _collect_optional_comparator_files(upstream_root, pattern="*.lean", recursive=True)
+    )
     return tuple(sorted(rel_paths))
 
 

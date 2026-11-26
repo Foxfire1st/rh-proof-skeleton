@@ -6,6 +6,7 @@ const props = withDefaults(
     buildStatus: string
     upstreamCommit: string
     upstreamRepo?: string
+    repoLayout?: 'condensed' | 'legacy'
     leanToolchain: string
     mathlibRev: string
     scanScope: string
@@ -16,6 +17,7 @@ const props = withDefaults(
   }>(),
   {
     upstreamRepo: 'https://github.com/leanprover-community/riemann-hypothesis',
+    repoLayout: 'condensed',
   },
 )
 
@@ -28,12 +30,34 @@ const shortMathlibRev = computed(() =>
 const commitTreeUrl = computed(
   () => `${normalizedRepo.value}/tree/${props.upstreamCommit}`,
 )
-const comparatorUrl = computed(
-  () => `${normalizedRepo.value}/tree/${props.upstreamCommit}/comparator`,
-)
-const verificationNotesUrl = computed(
-  () => `${normalizedRepo.value}/blob/${props.upstreamCommit}/verification/NOTES.md`,
-)
+const upstreamLinks = computed(() => {
+  if (props.repoLayout === 'legacy') {
+    return [
+      {
+        href: `${normalizedRepo.value}/tree/${props.upstreamCommit}/comparator`,
+        label: 'Upstream comparator/',
+      },
+      {
+        href: `${normalizedRepo.value}/blob/${props.upstreamCommit}/verification/NOTES.md`,
+        label: 'Upstream verification/NOTES.md',
+      },
+    ]
+  }
+  return [
+    {
+      href: `${normalizedRepo.value}/blob/${props.upstreamCommit}/comparator.json`,
+      label: 'Upstream comparator.json',
+    },
+    {
+      href: `${normalizedRepo.value}/blob/${props.upstreamCommit}/GUIDE.md`,
+      label: 'Upstream GUIDE.md',
+    },
+    {
+      href: `${normalizedRepo.value}/blob/${props.upstreamCommit}/INDEX.md`,
+      label: 'Upstream INDEX.md',
+    },
+  ]
+})
 
 const statusMeta = computed(() => {
   if (props.buildStatus === 'unverified-locally') {
@@ -104,11 +128,14 @@ const statusMeta = computed(() => {
     </dl>
 
     <div class="rh-verification-banner__links">
-      <a :href="comparatorUrl" target="_blank" rel="noopener noreferrer">
-        Upstream comparator/
-      </a>
-      <a :href="verificationNotesUrl" target="_blank" rel="noopener noreferrer">
-        Upstream verification/NOTES.md
+      <a
+        v-for="link in upstreamLinks"
+        :key="link.href"
+        :href="link.href"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ link.label }}
       </a>
     </div>
   </aside>

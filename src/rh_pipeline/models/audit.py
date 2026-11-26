@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, cast
 
@@ -24,7 +24,13 @@ def format_canonical_json(payload: Mapping[str, Any]) -> str:
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 
 
-def _as_object(data: object, *, label: str, required_keys: frozenset[str]) -> Mapping[str, object]:
+def _as_object(
+    data: object,
+    *,
+    label: str,
+    required_keys: frozenset[str],
+    optional_keys: frozenset[str] = frozenset(),
+) -> Mapping[str, object]:
     if not isinstance(data, Mapping):
         raise ValueError(f"{label} must be a JSON object")
     raw = cast(Mapping[object, object], data)
@@ -34,7 +40,7 @@ def _as_object(data: object, *, label: str, required_keys: frozenset[str]) -> Ma
     str_data = cast(Mapping[str, object], raw)
     actual_keys = frozenset(str_data.keys())
     missing = sorted(required_keys - actual_keys)
-    extra = sorted(actual_keys - required_keys)
+    extra = sorted(actual_keys - (required_keys | optional_keys))
     if missing or extra:
         raise ValueError(f"{label} key mismatch (missing={missing}, extra={extra})")
     return str_data
@@ -45,6 +51,20 @@ def _require_str(value: object, *, field: str, allow_empty: bool = False) -> str
         raise ValueError(f"{field} must be a string")
     if not allow_empty and not value:
         raise ValueError(f"{field} must not be empty")
+    return value
+
+
+def _require_optional_str(value: object, *, field: str) -> str | None:
+    if value is None:
+        return None
+    return _require_str(value, field=field)
+
+
+def _require_optional_bool(value: object, *, field: str) -> bool | None:
+    if value is None:
+        return None
+    if not isinstance(value, bool):
+        raise ValueError(f"{field} must be a boolean or null")
     return value
 
 
@@ -178,6 +198,10 @@ class ReplayPin:
         )
 
 
+def _empty_kernels() -> dict[str, tuple[str, ...]]:
+    return {}
+
+
 @dataclass(frozen=True, slots=True)
 class ComparatorSummary:
     """Summary of one upstream Comparator configuration file."""
@@ -187,7 +211,9 @@ class ComparatorSummary:
     solution_module: str
     theorem_names: tuple[str, ...]
     permitted_axioms: tuple[str, ...]
-    external_kernels: Mapping[str, tuple[str, ...]]
+    external_kernels: Mapping[str, tuple[str, ...]] = field(default_factory=_empty_kernels)
+    definition_names: tuple[str, ...] = ()
+    enable_nanoda: bool | None = None
 
     def __post_init__(self) -> None:
         frozen_kernels = MappingProxyType(
@@ -199,6 +225,8 @@ class ComparatorSummary:
         return {
             "challenge_module": self.challenge_module,
             "config_path": self.config_path,
+            "definition_names": list(self.definition_names),
+            "enable_nanoda": self.enable_nanoda,
             "external_kernels": {k: list(v) for k, v in sorted(self.external_kernels.items())},
             "permitted_axioms": list(self.permitted_axioms),
             "solution_module": self.solution_module,
@@ -217,9 +245,24 @@ class ComparatorSummary:
                     "solution_module",
                     "theorem_names",
                     "permitted_axioms",
-                    "external_kernels",
                 }
             ),
+            optional_keys=frozenset({"external_kernels", "definition_names", "enable_nanoda"}),
+        )
+        external_kernels = (
+            _require_kernel_mapping(obj["external_kernels"], field="external_kernels")
+            if "external_kernels" in obj
+            else {}
+        )
+        definition_names = (
+            _require_str_tuple(obj["definition_names"], field="definition_names")
+            if "definition_names" in obj
+            else ()
+        )
+        enable_nanoda = (
+            _require_optional_bool(obj["enable_nanoda"], field="enable_nanoda")
+            if "enable_nanoda" in obj
+            else None
         )
         return cls(
             config_path=_require_str(obj["config_path"], field="config_path"),
@@ -227,9 +270,9 @@ class ComparatorSummary:
             solution_module=_require_str(obj["solution_module"], field="solution_module"),
             theorem_names=_require_str_tuple(obj["theorem_names"], field="theorem_names"),
             permitted_axioms=_require_str_tuple(obj["permitted_axioms"], field="permitted_axioms"),
-            external_kernels=_require_kernel_mapping(
-                obj["external_kernels"], field="external_kernels"
-            ),
+            external_kernels=external_kernels,
+            definition_names=definition_names,
+            enable_nanoda=enable_nanoda,
         )
 
 
@@ -404,8 +447,8 @@ class VerificationStatus:
     challenge_sorry_count: int
     theorem_names: tuple[str, ...]
     permitted_axioms: tuple[str, ...]
-    community_verification_notes_sha256: str
-    upstream_static_scan_sha256: str
+    community_verification_notes_sha256: str | None
+    upstream_static_scan_sha256: str | None
     scan: StaticScanSummary
 
     def to_dict(self) -> dict[str, Any]:
@@ -481,11 +524,11 @@ class VerificationStatus:
             ),
             theorem_names=_require_str_tuple(obj["theorem_names"], field="theorem_names"),
             permitted_axioms=_require_str_tuple(obj["permitted_axioms"], field="permitted_axioms"),
-            community_verification_notes_sha256=_require_str(
+            community_verification_notes_sha256=_require_optional_str(
                 obj["community_verification_notes_sha256"],
                 field="community_verification_notes_sha256",
             ),
-            upstream_static_scan_sha256=_require_str(
+            upstream_static_scan_sha256=_require_optional_str(
                 obj["upstream_static_scan_sha256"], field="upstream_static_scan_sha256"
             ),
             scan=StaticScanSummary.from_dict(obj["scan"]),

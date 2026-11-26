@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
-type ZoomLevel = 'abitur' | 'undergrad' | 'lean'
+type ZoomLevel = 'first-principles' | 'undergrad' | 'lean'
 
 interface ZoomTabDef {
   id: ZoomLevel
@@ -12,10 +12,10 @@ interface ZoomTabDef {
 
 const TABS: readonly ZoomTabDef[] = [
   {
-    id: 'abitur',
+    id: 'first-principles',
     panelId: 'level-1',
     slotName: 'level1',
-    label: 'Level 1 · Abitur / First-Principles',
+    label: 'Level 1 · First-Principles',
   },
   {
     id: 'undergrad',
@@ -36,7 +36,7 @@ const props = defineProps<{
 }>()
 
 const hydrated = ref(false)
-const activeLevel = ref<ZoomLevel>('abitur')
+const activeLevel = ref<ZoomLevel>('first-principles')
 const tabRefs = ref<Array<HTMLButtonElement | null>>([])
 
 function parseLevelFromUrl(): ZoomLevel | null {
@@ -45,16 +45,19 @@ function parseLevelFromUrl(): ZoomLevel | null {
   }
   const params = new URLSearchParams(window.location.search)
   const queryLevel = params.get('level')
-  if (
-    queryLevel === 'abitur' ||
-    queryLevel === 'undergrad' ||
-    queryLevel === 'lean'
-  ) {
+  if (queryLevel === 'first-principles' || queryLevel === 'abitur') {
+    return 'first-principles'
+  }
+  if (queryLevel === 'undergrad' || queryLevel === 'lean') {
     return queryLevel
   }
   const hash = window.location.hash.toLowerCase()
-  if (hash === '#level-abitur' || hash === '#level-1') {
-    return 'abitur'
+  if (
+    hash === '#level-first-principles' ||
+    hash === '#level-abitur' ||
+    hash === '#level-1'
+  ) {
+    return 'first-principles'
   }
   if (hash === '#level-undergrad' || hash === '#level-2') {
     return 'undergrad'

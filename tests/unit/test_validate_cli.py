@@ -116,7 +116,7 @@ def test_cli_populated_memory_passes_and_ignores_onboarding(
             """\
             # Stage 00
 
-            ## Level 1 — Abitur / First-Principles
+            ## Level 1 — First-Principles
             We study {{concept:critical-strip|the band where $|z| < 1$}}.
             Later, {{term:critical-strip|critical strips}} hold all non-trivial zeros.
 
@@ -129,7 +129,7 @@ def test_cli_populated_memory_passes_and_ignores_onboarding(
     onboarding_dir = mem / "onboarding"
     onboarding_dir.mkdir(parents=True)
     (onboarding_dir / "code-card.md").write_text(
-        "## Level 1 — Abitur\nUnrevealed critical strip and {{concept:missing|bad}}.\n",
+        "## Level 1 — First-Principles\nUnrevealed critical strip and {{concept:missing|bad}}.\n",
         encoding="utf-8",
     )
 
@@ -153,7 +153,7 @@ def test_cli_reports_sorted_canonical_findings_across_gates(
     stage_dir = mem / "docs" / "stages" / "00_statement"
     stage_dir.mkdir(parents=True)
     (stage_dir / "index.md").write_text(
-        "## Level 1 — Abitur / First-Principles\nThe critical strip comes too early.\n",
+        "## Level 1 — First-Principles\nThe critical strip comes too early.\n",
         encoding="utf-8",
     )
 

@@ -25,49 +25,246 @@
       "title": "Formal Statements & Challenge Contracts"
     },
     {
-      "files": [],
+      "files": [
+        {
+          "preserve_defs": false,
+          "skeleton_file": "01_reduction/new_main.lean",
+          "upstream_path": "src/New/Main.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "01_reduction/one_sided_bound.lean",
+          "upstream_path": "src/New/Reduction/OneSidedBound.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "01_reduction/main_inequality.lean",
+          "upstream_path": "src/New/Reduction/MainInequality.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "01_reduction/short_and_enough.lean",
+          "upstream_path": "src/New/Reduction/ShortAndEnough.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "01_reduction/twisted_lattice.lean",
+          "upstream_path": "src/New/Reduction/Lattices/TwistedLattice.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "01_reduction/criterion.lean",
+          "upstream_path": "src/New/Reduction/Zeros/Criterion.lean"
+        }
+      ],
       "order": 1,
       "stage_id": "01_reduction",
       "summary": "From a one-sided non-vanishing bound in Re(s) > 1/2 to zeros on the critical line, admissible data, twisted lattices, heights, prime sums, and the main inequality.",
       "title": "The Theorem and Its Reduction"
     },
     {
-      "files": [],
+      "files": [
+        {
+          "preserve_defs": false,
+          "skeleton_file": "02_derivatives/count.lean",
+          "upstream_path": "src/New/Derivatives/Divisibility/Count.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "02_derivatives/theta_products.lean",
+          "upstream_path": "src/New/Derivatives/FormalGroup/ThetaProducts.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "02_derivatives/tight_frames.lean",
+          "upstream_path": "src/New/Derivatives/Vacuum/TightFrames.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "02_derivatives/integral_vacuum.lean",
+          "upstream_path": "src/New/Derivatives/Vacuum/IntegralVacuum.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "02_derivatives/bound_attained.lean",
+          "upstream_path": "src/New/Derivatives/Sharpness/BoundAttained.lean"
+        }
+      ],
       "order": 2,
       "stage_id": "02_derivatives",
       "summary": "CM field characters, formal group and exponential factors, integral vacuum, and p-adic divisibility of theta derivatives that count primes.",
       "title": "Derivatives of Theta Functions"
     },
     {
-      "files": [],
+      "files": [
+        {
+          "preserve_defs": false,
+          "skeleton_file": "03_upper_bound/seesaw_identity.lean",
+          "upstream_path": "src/New/UpperBound/Seesaw/SeesawIdentity.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "03_upper_bound/local_divisibility.lean",
+          "upstream_path": "src/New/UpperBound/Divisibility/LocalDivisibility.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "03_upper_bound/archimedean_size.lean",
+          "upstream_path": "src/New/UpperBound/Size/ArchimedeanSize.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "03_upper_bound/short_columns.lean",
+          "upstream_path": "src/New/UpperBound/Size/ShortColumns.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "03_upper_bound/elementary_divisor_theorem.lean",
+          "upstream_path": "src/New/UpperBound/ElementaryDivisors/ElementaryDivisorTheorem.lean"
+        }
+      ],
       "order": 3,
       "stage_id": "03_upper_bound",
       "summary": "Theta kernels between definite unitary spaces, source and target forms, chains of lifts, iterated seesaw identity, divisibility, size bounds, and short source forms.",
       "title": "Upper Bound: Composite Theta Lift — Theorem A"
     },
     {
-      "files": [],
+      "files": [
+        {
+          "preserve_defs": false,
+          "skeleton_file": "04_spanning/spanning_theorem.lean",
+          "upstream_path": "src/New/Spanning/SecondMoment/SpanningTheorem.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "04_spanning/equal_multiplicities.lean",
+          "upstream_path": "src/New/Spanning/Multiplicities/EqualMultiplicities.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "04_spanning/moments.lean",
+          "upstream_path": "src/New/Spanning/Unfolding/Moments.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "04_spanning/energy_estimate.lean",
+          "upstream_path": "src/New/Spanning/MainTerm/EnergyEstimate.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "04_spanning/remaining_terms_sum.lean",
+          "upstream_path": "src/New/Spanning/RemainingTerms/Sum.lean"
+        }
+      ],
       "order": 4,
       "stage_id": "04_spanning",
       "summary": "Second moment of normalized Poincare series, multiplicity equality, Bessel functions, unfolding, main and remaining terms, and spanning.",
       "title": "Spanning: Second Moment — Theorem B"
     },
     {
-      "files": [],
+      "files": [
+        {
+          "preserve_defs": false,
+          "skeleton_file": "05_determinant/long_forms.lean",
+          "upstream_path": "src/New/Determinant/Twist/LongForms.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "05_determinant/fit_twists.lean",
+          "upstream_path": "src/New/Determinant/Twist/FitTwists.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "05_determinant/norm_of_chain.lean",
+          "upstream_path": "src/New/Determinant/Chain/NormOfChain.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "05_determinant/theorem_for_partners.lean",
+          "upstream_path": "src/New/Determinant/Exchange/TheoremForPartners.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "05_determinant/one_square.lean",
+          "upstream_path": "src/New/Determinant/Exchange/OneSquare.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "05_determinant/spanning_forms.lean",
+          "upstream_path": "src/New/Determinant/AuxiliaryForms/SpanningForms.lean"
+        }
+      ],
       "order": 5,
       "stage_id": "05_determinant",
       "summary": "Regular families of twists, norms of theta lifts, Siegel-Weil exchange and square identities, chain determinants, and auxiliary forms.",
       "title": "Lower Bound: The Determinant — Theorem C, Part 1"
     },
     {
-      "files": [],
+      "files": [
+        {
+          "preserve_defs": false,
+          "skeleton_file": "06_one_lift/lift_volume_height.lean",
+          "upstream_path": "src/New/OneLift/LiftVolumeHeight.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "06_one_lift/gluing_maps.lean",
+          "upstream_path": "src/New/OneLift/ComparisonOperator/GluingMaps.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "06_one_lift/three_exchanges.lean",
+          "upstream_path": "src/New/OneLift/ComparisonOperator/ThreeExchanges.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "06_one_lift/periods_of_false_lifts.lean",
+          "upstream_path": "src/New/OneLift/FalseLifts/PeriodsOfFalseLifts.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "06_one_lift/twisted_value_heights.lean",
+          "upstream_path": "src/New/OneLift/HeckeValues/TwistedValueHeights.lean"
+        }
+      ],
       "order": 6,
       "stage_id": "06_one_lift",
       "summary": "Single theta lifts between unitary spaces, Hecke comparison operators, periods of false lifts, and Hecke L-values as squared norms and their valuations.",
       "title": "Lower Bound: One Lift — Theorem C, Part 2"
     },
     {
-      "files": [],
+      "files": [
+        {
+          "preserve_defs": false,
+          "skeleton_file": "07_congruences/fit_twists_exist.lean",
+          "upstream_path": "src/New/Congruences/FitTwistsExist.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "07_congruences/rows_from_eigensystems.lean",
+          "upstream_path": "src/New/Congruences/GaloisRepresentations/RowsFromEigensystems.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "07_congruences/denominator_bound.lean",
+          "upstream_path": "src/New/Congruences/FirstOrder/DenominatorBound.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "07_congruences/twisting_theorem.lean",
+          "upstream_path": "src/New/Congruences/Selmer/TwistingTheorem.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "07_congruences/crystalline_defect.lean",
+          "upstream_path": "src/New/Congruences/LocalLoss/CrystallineDefect.lean"
+        },
+        {
+          "preserve_defs": false,
+          "skeleton_file": "07_congruences/cup_orthogonality_bounds.lean",
+          "upstream_path": "src/New/Congruences/Lifting/CupOrthogonalityBounds.lean"
+        }
+      ],
       "order": 7,
       "stage_id": "07_congruences",
       "summary": "Existence of regular twist families, attached Galois representations, first-order congruences, anticyclotomic Selmer bounds, local loss, and crystalline lifting.",

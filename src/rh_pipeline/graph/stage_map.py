@@ -9,6 +9,7 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from rh_pipeline.graph.import_projection import project_nearest_landmarks
 from rh_pipeline.lean.parser import extract_declarations
 from rh_pipeline.lean.stub_emitter import render_skeleton_file
 from rh_pipeline.models.dag import (
@@ -129,17 +130,39 @@ def _validate_unique_decl_names(refs: tuple[DagDeclarationRef, ...], skeleton_fi
         seen_names.add(ref.name)
 
 
-def _build_dag_node(
-    stage_id: str,
-    mapping: StageFileMapping,
+def _validate_projected_keys(
+    projected_depends_on: Mapping[str, tuple[str, ...]] | None,
+    valid_node_ids: frozenset[str],
+) -> None:
+    if projected_depends_on is None:
+        return
+    unknown = sorted(node_id for node_id in projected_depends_on if node_id not in valid_node_ids)
+    if unknown:
+        raise StageMapError(f"Unknown node ID in projected_depends_on: {unknown[0]!r}")
+
+
+def _normalize_projected_deps(
+    node_id: str,
+    raw_deps: tuple[str, ...],
+    valid_node_ids: frozenset[str],
+) -> tuple[str, ...]:
+    unknown = sorted(dep for dep in raw_deps if dep not in valid_node_ids)
+    if unknown:
+        raise StageMapError(f"Unknown projected dependency {unknown[0]!r} for node {node_id!r}")
+    return tuple(sorted({dep for dep in raw_deps if dep != node_id}))
+
+
+def _resolve_depends_on(
+    node_id: str,
     module: ExtractedModule,
-    refs: tuple[DagDeclarationRef, ...],
     module_to_node: Mapping[str, str],
-) -> DagNode:
-    _validate_unique_decl_names(refs, mapping.skeleton_file)
-    node_id = mapping.skeleton_file.removesuffix(".lean")
+    valid_node_ids: frozenset[str],
+    projected_depends_on: Mapping[str, tuple[str, ...]] | None,
+) -> tuple[str, ...]:
+    if projected_depends_on is not None and node_id in projected_depends_on:
+        return _normalize_projected_deps(node_id, projected_depends_on[node_id], valid_node_ids)
     # Edges come strictly from resolved Lean import statements among mapped nodes.
-    depends_on = tuple(
+    return tuple(
         sorted(
             {
                 dep_id
@@ -148,6 +171,16 @@ def _build_dag_node(
             }
         )
     )
+
+
+def _build_dag_node(
+    stage_id: str,
+    mapping: StageFileMapping,
+    refs: tuple[DagDeclarationRef, ...],
+    depends_on: tuple[str, ...],
+) -> DagNode:
+    _validate_unique_decl_names(refs, mapping.skeleton_file)
+    node_id = mapping.skeleton_file.removesuffix(".lean")
     title = Path(mapping.upstream_path).stem
     is_landmark = any(ref.kind in _LANDMARK_KINDS for ref in refs)
     try:
@@ -171,11 +204,19 @@ def build_dag(
     decl_refs: Mapping[str, tuple[DagDeclarationRef, ...]],
     *,
     upstream_commit: str,
+    projected_depends_on: Mapping[str, tuple[str, ...]] | None = None,
 ) -> DagGraph:
-    """Build a deterministic proof DAG from validated stages, parsed modules, and decl refs."""
+    """Build a deterministic proof DAG from validated stages, parsed modules, and decl refs.
+
+    When ``projected_depends_on`` (keyed by ``node_id``) is omitted, edges are computed
+    strictly from direct mapped Lean imports. When supplied, entries override a node's
+    dependencies after validating all referenced node IDs, removing self-edges, and sorting.
+    """
     if not upstream_commit or not upstream_commit.strip():
         raise StageMapError("upstream_commit must not be empty")
     ordered_stages, module_to_node = _validate_stages(stages)
+    valid_node_ids = frozenset(module_to_node.values())
+    _validate_projected_keys(projected_depends_on, valid_node_ids)
     nodes: list[DagNode] = []
     for stage in ordered_stages:
         for mapping in stage.files:
@@ -189,7 +230,11 @@ def build_dag(
             refs = decl_refs.get(mapping.upstream_path)
             if refs is None:
                 raise StageMapError(f"Missing declaration refs for {mapping.upstream_path!r}")
-            nodes.append(_build_dag_node(stage.stage_id, mapping, module, refs, module_to_node))
+            node_id = mapping.skeleton_file.removesuffix(".lean")
+            depends_on = _resolve_depends_on(
+                node_id, module, module_to_node, valid_node_ids, projected_depends_on
+            )
+            nodes.append(_build_dag_node(stage.stage_id, mapping, refs, depends_on))
     return DagGraph(
         schema_version=DAG_SCHEMA_VERSION,
         upstream_commit=upstream_commit,
@@ -295,6 +340,20 @@ def extract_and_write(
             decl_refs[mapping.upstream_path] = refs
             rendered_outputs.append((out_skeleton_dir / mapping.skeleton_file, skeleton_text))
 
-    dag = build_dag(stages, modules, decl_refs, upstream_commit=upstream_commit)
+    _, module_to_node = _validate_stages(stages)
+    try:
+        projected_depends_on = project_nearest_landmarks(
+            resolved_root, stages, modules, module_to_node
+        )
+    except (OSError, UnicodeDecodeError) as exc:
+        raise StageMapError(f"Unable to read unmapped upstream Lean import: {exc}") from exc
+
+    dag = build_dag(
+        stages,
+        modules,
+        decl_refs,
+        upstream_commit=upstream_commit,
+        projected_depends_on=projected_depends_on,
+    )
     _write_outputs_atomically([*rendered_outputs, (out_dag_path, dag.to_json())])
     return dag

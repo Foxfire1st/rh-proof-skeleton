@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from rh_pipeline.lean.parser import extract_declarations
 from rh_pipeline.lean.stub_emitter import render_skeleton_file
 from rh_pipeline.models.dag import DagDeclarationRef
 from rh_pipeline.models.lean import (
@@ -380,3 +381,73 @@ def test_deterministic_byte_identical_rerendering() -> None:
         second_text, second_refs = render_skeleton_file(module, preserve_defs=preserve_defs)
         assert first_text.encode("utf-8") == second_text.encode("utf-8")
         assert first_refs == second_refs
+
+
+def test_verbatim_where_and_equation_arm_bodies_omit_assign() -> None:
+    where_inline = _make_decl(
+        name="mkRec",
+        kind="def",
+        signature="def mkRec (n : Nat) : Rec",
+        body="where\n  val := n",
+        start_line=1,
+        end_line=2,
+        body_sha256="1" * 64,
+    )
+    where_indented = _make_decl(
+        name="mkRecIndented",
+        kind="abbrev",
+        signature="abbrev mkRecIndented (n : Nat) : Rec",
+        body="  where\n    val := n",
+        start_line=4,
+        end_line=6,
+        body_sha256="2" * 64,
+    )
+    eq_arms = _make_decl(
+        name="fib",
+        kind="def",
+        signature="def fib : Nat → Nat",
+        body="  | 0 => 0\n  | n + 1 => n",
+        start_line=8,
+        end_line=10,
+        body_sha256="3" * 64,
+    )
+    norm_body = _make_decl(
+        name="absVal",
+        kind="def",
+        signature="def absVal (x : Real) : Real",
+        body="|x|",
+        start_line=12,
+        end_line=12,
+        body_sha256="4" * 64,
+    )
+    whereas_body = _make_decl(
+        name="useWhereas",
+        kind="def",
+        signature="def useWhereas : Nat",
+        body="whereas",
+        start_line=14,
+        end_line=14,
+        body_sha256="5" * 64,
+    )
+    module = ExtractedModule(
+        upstream_path=_UPSTREAM_PATH,
+        upstream_commit=_UPSTREAM_COMMIT,
+        imports=(),
+        declarations=(where_inline, where_indented, eq_arms, norm_body, whereas_body),
+    )
+
+    text, _ = render_skeleton_file(module, preserve_defs=True)
+    assert "def mkRec (n : Nat) : Rec where\n  val := n\n" in text
+    assert "abbrev mkRecIndented (n : Nat) : Rec\n  where\n    val := n\n" in text
+    assert "def fib : Nat → Nat\n  | 0 => 0\n  | n + 1 => n\n" in text
+    assert "def absVal (x : Real) : Real := |x|\n" in text
+    assert "def useWhereas : Nat := whereas\n" in text
+
+    reparsed = extract_declarations(text, rel_path=_UPSTREAM_PATH, commit=_UPSTREAM_COMMIT)
+    assert [(d.name, d.signature, d.body) for d in reparsed.declarations] == [
+        (d.name, d.signature, d.body) for d in module.declarations
+    ]
+
+    stubbed, _ = render_skeleton_file(module, preserve_defs=False)
+    assert "def mkRec (n : Nat) : Rec := by\n  sorry -- [EXTRACTED_STUB" in stubbed
+    assert "def fib : Nat → Nat := by\n  sorry -- [EXTRACTED_STUB" in stubbed

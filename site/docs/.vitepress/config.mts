@@ -27,6 +27,7 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: 'Proof Journey', link: '/stages/00_statement/proof-journey' },
       { text: 'Stage 00', link: '/stages/00_statement/overview' },
+      { text: 'Stage 01', link: '/stages/01_reduction/overview' },
       { text: 'Concepts', link: '/concepts/' },
       {
         text: 'Upstream Lean Repo',
@@ -53,6 +54,24 @@ export default defineConfig({
           {
             text: 'Formal Conjectures Equivalence',
             link: '/stages/00_statement/formal-conjectures',
+          },
+        ],
+      },
+      {
+        text: 'Stage 01 — The Theorem & Its Reduction',
+        items: [
+          { text: 'Overview', link: '/stages/01_reduction/overview' },
+          {
+            text: 'One-Sided Criterion & GRH',
+            link: '/stages/01_reduction/one-sided-criterion',
+          },
+          {
+            text: 'Main Inequality & Theorems A/B',
+            link: '/stages/01_reduction/main-inequality',
+          },
+          {
+            text: 'Twisted Lattices & Product Formula',
+            link: '/stages/01_reduction/twisted-lattices',
           },
         ],
       },
@@ -90,6 +109,15 @@ export default defineConfig({
             text: 'Formal Verification',
             link: '/concepts/formal-verification',
           },
+          {
+            text: 'Von Mangoldt Function',
+            link: '/concepts/von-mangoldt-function',
+          },
+          { text: "Landau's Lemma", link: '/concepts/landaus-lemma' },
+          { text: 'Quadratic Twist', link: '/concepts/quadratic-twist' },
+          { text: 'Twisted Lattice', link: '/concepts/twisted-lattice' },
+          { text: 'Gram Determinant', link: '/concepts/gram-determinant' },
+          { text: 'Arithmetic Height', link: '/concepts/arithmetic-height' },
         ],
       },
     ],

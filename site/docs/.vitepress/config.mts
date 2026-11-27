@@ -53,6 +53,10 @@ export default defineConfig({
             text: 'Stage 05 — Determinant (Theorem C, Pt 1)',
             link: '/stages/05_determinant/overview',
           },
+          {
+            text: 'Stage 06 — One Lift (Theorem C, Pt 2)',
+            link: '/stages/06_one_lift/overview',
+          },
         ],
       },
       { text: 'Concepts', link: '/concepts/' },
@@ -175,6 +179,24 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Stage 06 — One Lift (Theorem C, Pt 2)',
+        items: [
+          { text: 'Overview', link: '/stages/06_one_lift/overview' },
+          {
+            text: 'Three Exchanges & Gluing Maps',
+            link: '/stages/06_one_lift/three-exchanges-and-gluing-maps',
+          },
+          {
+            text: 'False Lifts & Twisted L-Values',
+            link: '/stages/06_one_lift/false-lifts-and-twisted-l-values',
+          },
+          {
+            text: 'Lift Volume Height',
+            link: '/stages/06_one_lift/lift-volume-height',
+          },
+        ],
+      },
+      {
         text: 'Foundational Concepts',
         items: [
           { text: 'All Concept Cards', link: '/concepts/' },
@@ -276,6 +298,24 @@ export default defineConfig({
           {
             text: 'Auxiliary Spanning Form',
             link: '/concepts/auxiliary-spanning-form',
+          },
+          { text: 'Carrier Form', link: '/concepts/carrier-form' },
+          {
+            text: 'Divided-Lattice Gluing',
+            link: '/concepts/divided-lattice-gluing',
+          },
+          { text: 'False-Lift Period', link: '/concepts/false-lift-period' },
+          {
+            text: 'Character Theta Lift',
+            link: '/concepts/character-theta-lift',
+          },
+          {
+            text: 'Lift Comparison Operator',
+            link: '/concepts/lift-comparison-operator',
+          },
+          {
+            text: 'Idle Direction Repayment',
+            link: '/concepts/idle-direction-repayment',
           },
         ],
       },

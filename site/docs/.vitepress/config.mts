@@ -57,6 +57,10 @@ export default defineConfig({
             text: 'Stage 06 — One Lift (Theorem C, Pt 2)',
             link: '/stages/06_one_lift/overview',
           },
+          {
+            text: 'Stage 07 — Congruences & Galois (Theorem C, Pt 3)',
+            link: '/stages/07_congruences/overview',
+          },
         ],
       },
       { text: 'Concepts', link: '/concepts/' },
@@ -197,6 +201,24 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Stage 07 — Congruences & Galois (Theorem C, Pt 3)',
+        items: [
+          { text: 'Overview', link: '/stages/07_congruences/overview' },
+          {
+            text: 'Crystalline Lifting & Local Defect',
+            link: '/stages/07_congruences/crystalline-lifting-and-local-defect',
+          },
+          {
+            text: 'Main Summands & Twisting Theorem',
+            link: '/stages/07_congruences/main-summands-and-twisting-theorem',
+          },
+          {
+            text: 'Ribet Denominators & Regular Twists',
+            link: '/stages/07_congruences/ribet-denominators-and-regular-twists',
+          },
+        ],
+      },
+      {
         text: 'Foundational Concepts',
         items: [
           { text: 'All Concept Cards', link: '/concepts/' },
@@ -316,6 +338,30 @@ export default defineConfig({
           {
             text: 'Idle Direction Repayment',
             link: '/concepts/idle-direction-repayment',
+          },
+          {
+            text: 'Galois Main Summand',
+            link: '/concepts/galois-main-summand',
+          },
+          {
+            text: 'Anticyclotomic Selmer Twisting',
+            link: '/concepts/anticyclotomic-selmer-twisting',
+          },
+          {
+            text: 'Taylor–Wiles Prime Triangle',
+            link: '/concepts/taylor-wiles-prime-triangle',
+          },
+          {
+            text: 'Ribet Clearing Operator',
+            link: '/concepts/ribet-clearing-operator',
+          },
+          {
+            text: 'Kummer Chart Cup Orthogonality',
+            link: '/concepts/kummer-chart-cup-orthogonality',
+          },
+          {
+            text: 'Crystalline Dual Defect',
+            link: '/concepts/crystalline-dual-defect',
           },
         ],
       },

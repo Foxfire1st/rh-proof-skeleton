@@ -49,6 +49,10 @@ export default defineConfig({
             text: 'Stage 04 — Spanning (Theorem B)',
             link: '/stages/04_spanning/overview',
           },
+          {
+            text: 'Stage 05 — Determinant (Theorem C, Pt 1)',
+            link: '/stages/05_determinant/overview',
+          },
         ],
       },
       { text: 'Concepts', link: '/concepts/' },
@@ -153,6 +157,24 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Stage 05 — Determinant (Theorem C, Pt 1)',
+        items: [
+          { text: 'Overview', link: '/stages/05_determinant/overview' },
+          {
+            text: 'Exchange & One Square',
+            link: '/stages/05_determinant/exchange-and-one-square',
+          },
+          {
+            text: 'Chain Determinant & Auxiliary Forms',
+            link: '/stages/05_determinant/chain-determinant-and-auxiliary-forms',
+          },
+          {
+            text: 'Regular Twists & Theorem C',
+            link: '/stages/05_determinant/regular-twists-and-theorem-c',
+          },
+        ],
+      },
+      {
         text: 'Foundational Concepts',
         items: [
           { text: 'All Concept Cards', link: '/concepts/' },
@@ -234,6 +256,27 @@ export default defineConfig({
           },
           { text: 'Kloosterman Sieve', link: '/concepts/kloosterman-sieve' },
           { text: 'Link Lattice', link: '/concepts/link-lattice' },
+          {
+            text: 'Siegel–Weil Exchange',
+            link: '/concepts/siegel-weil-exchange',
+          },
+          { text: 'Theta Square Law', link: '/concepts/theta-square-law' },
+          {
+            text: 'Rallis Inner Product Formula',
+            link: '/concepts/rallis-inner-product',
+          },
+          {
+            text: 'Regular Twist Family',
+            link: '/concepts/regular-twist-family',
+          },
+          {
+            text: 'Hecke L-Value Ratio',
+            link: '/concepts/hecke-l-value-ratio',
+          },
+          {
+            text: 'Auxiliary Spanning Form',
+            link: '/concepts/auxiliary-spanning-form',
+          },
         ],
       },
     ],

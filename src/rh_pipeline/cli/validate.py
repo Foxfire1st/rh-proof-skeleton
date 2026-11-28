@@ -58,6 +58,8 @@ def _run_memory_checks(repo_root: Path, memory_root: Path | None) -> tuple[Valid
     registry, concept_findings = validate_concept_corpus(
         docs_root, skeleton_root=repo_root / "skeleton"
     )
+    if any(f.rule == "concept-term-collision" for f in concept_findings):
+        return concept_findings
     jargon_findings = validate_explainer_docs(docs_root, registry=registry)
     return (*concept_findings, *jargon_findings)
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal, cast
 
@@ -16,6 +16,12 @@ VALID_CONCEPT_SOURCE_KINDS: frozenset[str] = frozenset({"book", "paper", "mathli
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _TOP_LEVEL_KEY_RE = re.compile(r"^([A-Za-z0-9_-]+)\s*:")
+_PLAIN_TEXT_LATEX_RE = re.compile(
+    r"(?<!\\)\$\$"
+    r"|(?<!\\)\$(?!\$)(?:\\.|[^$\\\n])+?\$"
+    r"|\\[()\[\]]"
+    r"|\\[A-Za-z]+"
+)
 
 _REQUIRED_KEYS: frozenset[str] = frozenset(
     {"slug", "term", "inline_glimpse", "where_analogy_breaks"}
@@ -25,6 +31,35 @@ _OPTIONAL_KEYS: frozenset[str] = frozenset(
 )
 _ALLOWED_KEYS: frozenset[str] = _REQUIRED_KEYS | _OPTIONAL_KEYS
 _SOURCE_KEYS: frozenset[str] = frozenset({"title", "citation", "kind"})
+
+
+def find_plain_text_latex(text: str) -> str | None:
+    """Return the first raw LaTeX delimiter or control sequence in plain text, or `None`.
+
+    Rejects `$$`, paired unescaped `$...$` spans, `\\(`, `\\)`, `\\[`, `\\]`, and
+    `\\command` control sequences while allowing a lone currency `$`, escaped `\\$`,
+    and ordinary prose backslashes that do not start a LaTeX token.
+    """
+    match = _PLAIN_TEXT_LATEX_RE.search(text)
+    return match.group(0) if match is not None else None
+
+
+def concept_variants(term: str, aliases: Sequence[str]) -> tuple[str, ...]:
+    """Return deduplicated normalized terms, aliases, and simple `-s`/`-es` plurals for one card."""
+    bases: list[str] = []
+    seen: set[str] = set()
+    for raw in (term, *aliases):
+        norm = " ".join(raw.lower().split())
+        if norm and norm not in seen:
+            seen.add(norm)
+            bases.append(norm)
+    variants = list(bases)
+    for norm in bases:
+        for plural in (f"{norm}s", f"{norm}es"):
+            if plural not in seen:
+                seen.add(plural)
+                variants.append(plural)
+    return tuple(variants)
 
 
 def _require_text(value: object, field: str) -> None:

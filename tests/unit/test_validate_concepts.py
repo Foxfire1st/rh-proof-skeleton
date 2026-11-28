@@ -12,6 +12,8 @@ from rh_pipeline.lean.parser import extract_declarations
 from rh_pipeline.models.concepts import (
     ConceptCard,
     ConceptSource,
+    concept_variants,
+    find_plain_text_latex,
     parse_concept_card,
 )
 from rh_pipeline.models.lean import ExtractedModule
@@ -26,19 +28,20 @@ FIXTURE_ROOT = REPO_ROOT / "tests" / "fixtures" / "validate" / "concepts"
 def _make_card_text(
     *,
     slug: str = "demo-concept",
-    term: str = "Demo concept",
+    term: str | None = None,
     inline_glimpse: str = "Short explanation.",
     where_analogy_breaks: str = "Analogy breaks at the boundary.",
     extra_yaml: str = "",
     body: str = "Card body paragraph.",
     leading_blank_line: bool = True,
 ) -> str:
+    resolved_term = slug.replace("-", " ") if term is None else term
     extra = f"{extra_yaml.rstrip()}\n" if extra_yaml.strip() else ""
     sep = "\n\n" if leading_blank_line else "\n"
     return (
         "---\n"
         f"slug: {slug}\n"
-        f"term: {term}\n"
+        f"term: {resolved_term}\n"
         f"inline_glimpse: {inline_glimpse}\n"
         f"where_analogy_breaks: {where_analogy_breaks}\n"
         f"{extra}"
@@ -554,3 +557,97 @@ def test_validate_corpus_read_errors_and_duplicate_slug_guard(
     assert [(f.rule, f.path) for f in dup_findings] == [
         ("concept-duplicate-slug", "concepts/second.md")
     ]
+
+
+def test_find_plain_text_latex_and_concept_plain_text_gate(tmp_path: Path) -> None:
+    # Negative cases: paired $...$, $$, \(...\), \[...\], and \command must be rejected.
+    for raw in ("$x$", "$p$-adic", "$$x$$", r"\(x\)", r"\[x\]", r"\mathrm{GL}", r"W \to O"):
+        assert find_plain_text_latex(raw) is not None, raw
+
+    # Positive cases: lone currency $, escaped \$, and non-command backslashes must pass.
+    for clean in ("costs $5", r"escaped \$5 and \$10", r"plain \ slash", "p-adic valuation"):
+        assert find_plain_text_latex(clean) is None, clean
+
+    source_yaml = "sources:\n  - title: Ref\n    citation: Ch. 1\n    kind: book\n"
+    _write_card(
+        tmp_path,
+        "bad-term.md",
+        _make_card_text(slug="bad-term", term='"$x$-term"', extra_yaml=source_yaml),
+    )
+    _write_card(
+        tmp_path,
+        "bad-alias.md",
+        _make_card_text(
+            slug="bad-alias",
+            term="Good term",
+            extra_yaml=source_yaml + 'aliases:\n  - "\\\\(x\\\\)"\n',
+        ),
+    )
+    _write_card(
+        tmp_path,
+        "bad-glimpse.md",
+        _make_card_text(
+            slug="bad-glimpse",
+            term="Another term",
+            inline_glimpse='"Uses \\\\mathrm{GL}_k(W) action."',
+            extra_yaml=source_yaml,
+        ),
+    )
+    _write_card(
+        tmp_path,
+        "good-currency.md",
+        _make_card_text(
+            slug="good-currency",
+            term='"Budget $5"',
+            inline_glimpse='"Allows lone $5 and escaped \\\\$10 in plain text."',
+            extra_yaml=source_yaml + 'aliases:\n  - "cost \\\\$5"\n',
+            body="## Level 2 — Undergrad Bridge\n\nOrdinary body math $p$-adic $\\mathrm{GL}_k$.\n",
+        ),
+    )
+
+    _, findings = validate_concept_corpus(tmp_path, skeleton_root=REAL_SKELETON_ROOT)
+    assert [(f.rule, f.path) for f in findings] == [
+        ("concept-plain-text-latex", "concepts/bad-alias.md"),
+        ("concept-plain-text-latex", "concepts/bad-glimpse.md"),
+        ("concept-plain-text-latex", "concepts/bad-term.md"),
+    ]
+
+
+def test_concept_variants_and_cross_vs_same_card_collisions(tmp_path: Path) -> None:
+    assert concept_variants("Foo", ("FOO", "  foo  ")) == ("foo", "foos", "fooes")
+
+    source_yaml = "sources:\n  - title: Ref\n    citation: Ch. 1\n    kind: book\n"
+    same_card_docs = tmp_path / "same_card"
+    _write_card(
+        same_card_docs,
+        "alpha.md",
+        _make_card_text(
+            slug="alpha",
+            term="Foo",
+            extra_yaml=source_yaml + 'aliases:\n  - "FOO"\n  - "  foo  "\n',
+        ),
+    )
+    _, same_findings = validate_concept_corpus(same_card_docs, skeleton_root=REAL_SKELETON_ROOT)
+    assert same_findings == ()
+
+    collide_docs = tmp_path / "collide"
+    _write_card(
+        collide_docs,
+        "alpha.md",
+        _make_card_text(slug="alpha", term="foo", extra_yaml=source_yaml),
+    )
+    _write_card(
+        collide_docs,
+        "beta.md",
+        _make_card_text(
+            slug="beta",
+            term="bar",
+            extra_yaml=source_yaml + 'aliases:\n  - "foos"\n',
+        ),
+    )
+    _, collide_findings = validate_concept_corpus(collide_docs, skeleton_root=REAL_SKELETON_ROOT)
+    assert [(f.rule, f.path) for f in collide_findings] == [
+        ("concept-term-collision", "concepts/beta.md")
+    ]
+    assert "'foos'" in collide_findings[0].message
+    assert "'alpha'" in collide_findings[0].message

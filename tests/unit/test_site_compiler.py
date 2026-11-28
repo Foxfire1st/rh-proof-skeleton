@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ import pytest
 from rh_pipeline.cli.build_site import main as build_site_main
 from rh_pipeline.models.audit import StaticScanSummary, VerificationStatus
 from rh_pipeline.models.concepts import ConceptCard, ConceptSource
+from rh_pipeline.models.dag import DagGraph, DagNode, StageDefinition
 from rh_pipeline.site import (
     SiteBuildConfig,
     SiteBuildError,
@@ -20,8 +22,14 @@ from rh_pipeline.site import (
     render_page_glossary,
     split_zoom_levels,
 )
-from rh_pipeline.site.renderers import render_verification_banner
+from rh_pipeline.site.renderers import (
+    MINIMAP_PATH_CHAR_BUDGET,
+    RenderContext,
+    render_stage_minimap,
+    render_verification_banner,
+)
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
 COMMIT = "a" * 40
 
 
@@ -171,7 +179,7 @@ def _make_fixture(
         'term: "Critical Line"\n'
         "aliases:\n"
         '  - "half-line"\n'
-        'inline_glimpse: "The vertical line $\\\\operatorname{Re}(s) = 1/2$ in the plane."\n'
+        'inline_glimpse: "The vertical line Re(s) = 1/2 in the complex plane."\n'
         "visual_ref: assets/critical-strip.svg\n"
         'where_analogy_breaks: "The line is an algebraic axis of symmetry, not a physical wire."\n'
         "sources:\n"
@@ -192,7 +200,7 @@ def _make_fixture(
         "---\n"
         "slug: riemann-zeta\n"
         'term: "Riemann Zeta Function"\n'
-        'inline_glimpse: "Analytic continuation of $\\\\sum_{n=1}^{\\\\infty} n^{-s}$."\n'
+        'inline_glimpse: "Analytic continuation of the Dirichlet series sum n^-s."\n'
         'where_analogy_breaks: "The Dirichlet series diverges at $s = 1/2$."\n'
         "sources:\n"
         '  - title: "Mathlib"\n'
@@ -595,3 +603,160 @@ def test_landing_index_with_proof_journey(tmp_path: Path) -> None:
     assert journey_link in roadmap and "S1 text." in roadmap
     assert "Skeleton extracted — essay upcoming" in roadmap
     assert "/stages/01_reduction/" not in index_md
+
+
+def test_compile_site_fails_closed_on_latex_and_collision_fixtures(tmp_path: Path) -> None:
+    for case in ("glimpse_latex", "term_display_latex", "variant_collision"):
+        repo, memory, out = _make_fixture(tmp_path / case)
+        if case == "glimpse_latex":
+            card = memory / "docs" / "concepts" / "critical-line.md"
+            card.write_text(
+                card.read_text(encoding="utf-8").replace(
+                    "Re(s) = 1/2", "$\\\\operatorname{Re}(s) = 1/2$"
+                ),
+                encoding="utf-8",
+            )
+        elif case == "term_display_latex":
+            page = memory / "docs" / "stages" / "00_statement" / "overview.md"
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    "{{term:critical-line|that symmetry line}}",
+                    "{{term:critical-line|$p$-adic line}}",
+                ),
+                encoding="utf-8",
+            )
+        else:
+            card = memory / "docs" / "concepts" / "riemann-zeta.md"
+            card.write_text(
+                card.read_text(encoding="utf-8").replace(
+                    'term: "Riemann Zeta Function"\n',
+                    'term: "Riemann Zeta Function"\naliases:\n  - "half-lines"\n',
+                ),
+                encoding="utf-8",
+            )
+        with pytest.raises(SiteBuildError):
+            compile_site(SiteBuildConfig(repo_root=repo, memory_root=memory, out_docs_dir=out))
+        assert not out.exists()
+
+
+def _extract_svg_from_minimap(rendered: str) -> ET.Element:
+    svg_start = rendered.index("<svg ")
+    svg_end = rendered.index("</svg>") + len("</svg>")
+    return ET.fromstring(rendered[svg_start:svg_end])
+
+
+def test_minimap_all_41_live_nodes_budget_tooltips_and_unique_ids() -> None:
+    dag = DagGraph.from_dict(json.loads((REPO_ROOT / "dag" / "dag.json").read_text("utf-8")))
+    ver = VerificationStatus.from_dict(
+        json.loads((REPO_ROOT / "audit" / "verification-status.json").read_text("utf-8"))
+    )
+    assert len(dag.nodes) == 41
+    ctx = RenderContext(
+        dag=dag,
+        verification=ver,
+        registry={},
+        nodes_by_id={node.id: node for node in dag.nodes},
+        stages_by_id={stage.stage_id: stage for stage in dag.stages},
+        decls_by_anchor={},
+        skeleton_lines={},
+        stage_page_stems={},
+        node_page_stems={},
+        base_url="/ar-rh-proof-skeleton/",
+        banner_tag="<VerificationBanner />",
+    )
+
+    seen_ids: set[str] = set()
+    checked_nodes = 0
+    ns = {"svg": "http://www.w3.org/2000/svg"}
+    for stage in dag.stages:
+        rendered = render_stage_minimap(stage.stage_id, ctx)
+        root = _extract_svg_from_minimap(rendered)
+        for elem in root.iter():
+            elem_id = elem.attrib.get("id")
+            if elem_id is not None:
+                assert elem_id not in seen_ids, f"duplicate SVG id {elem_id!r}"
+                seen_ids.add(elem_id)
+        marker = root.find(".//svg:marker", ns)
+        assert marker is not None
+        assert marker.attrib["id"] == f"rh-minimap-arrow-{stage.stage_id}"
+        stage_nodes = [n for n in dag.nodes if n.stage_id == stage.stage_id]
+        for idx, node in enumerate(stage_nodes):
+            checked_nodes += 1
+            clip = root.find(f".//svg:clipPath[@id='rh-minimap-clip-{stage.stage_id}-{idx}']", ns)
+            assert clip is not None
+            g_node = root.find(f".//svg:g[@data-node='{node.id}']", ns)
+            assert g_node is not None
+            title_el = g_node.find("svg:title", ns)
+            assert title_el is not None and title_el.text == node.upstream_path
+            texts = g_node.findall(".//svg:text", ns)
+            assert len(texts) == 2
+            path_text = texts[1].text or ""
+            assert len(path_text) <= MINIMAP_PATH_CHAR_BUDGET
+            if len(node.upstream_path) > MINIMAP_PATH_CHAR_BUDGET:
+                assert "…" in path_text
+    assert checked_nodes == 41
+
+
+def test_minimap_xml_escaping_and_synthetic_single_stage() -> None:
+    long_path = "src/A&B/<LongDir>/VeryLongModuleNameWithChars&More<Test>File.lean"
+    stage = StageDefinition(
+        stage_id="00_test",
+        order=0,
+        title="Stage <A> & B",
+        summary="Summary",
+        files=(),
+    )
+    node = DagNode(
+        id="00_test/n1",
+        stage_id="00_test",
+        title="Title <A> & B",
+        skeleton_file="00_test/n1.lean",
+        upstream_path=long_path,
+        declarations=(),
+        depends_on=(),
+        is_landmark=True,
+    )
+    dag = DagGraph(
+        schema_version="rh-dag/v1", upstream_commit=COMMIT, stages=(stage,), nodes=(node,)
+    )
+    scan = StaticScanSummary("entry", ("src/Main.lean",), (), (), 0)
+    ver = VerificationStatus(
+        "1.0.0",
+        COMMIT,
+        "leanprover/lean4:v4.37.0-rc1",
+        "b" * 40,
+        "unverified-locally",
+        "entry",
+        ("src/Main.lean",),
+        0,
+        0,
+        ("riemannHypothesis",),
+        ("propext",),
+        None,
+        None,
+        scan,
+    )
+    ctx = RenderContext(
+        dag=dag,
+        verification=ver,
+        registry={},
+        nodes_by_id={node.id: node},
+        stages_by_id={stage.stage_id: stage},
+        decls_by_anchor={},
+        skeleton_lines={},
+        stage_page_stems={},
+        node_page_stems={},
+        base_url="/",
+        banner_tag="<VerificationBanner />",
+    )
+    rendered = render_stage_minimap("00_test", ctx)
+    root = _extract_svg_from_minimap(rendered)
+    ns = {"svg": "http://www.w3.org/2000/svg"}
+    g_node = root.find(".//svg:g[@data-node='00_test/n1']", ns)
+    assert g_node is not None
+    title_el = g_node.find("svg:title", ns)
+    assert title_el is not None and title_el.text == long_path
+    texts = g_node.findall(".//svg:text", ns)
+    assert texts[0].text == "Title <A> & B [landmark]"
+    assert texts[1].text is not None and len(texts[1].text) <= MINIMAP_PATH_CHAR_BUDGET
+    assert "…" in texts[1].text

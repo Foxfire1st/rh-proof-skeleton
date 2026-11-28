@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 type ZoomLevel = 'first-principles' | 'undergrad' | 'lean'
 
@@ -31,41 +31,97 @@ const TABS: readonly ZoomTabDef[] = [
   },
 ] as const
 
+const LEVEL_ALIAS_HASHES: Readonly<Record<string, ZoomLevel>> = {
+  '#level-first-principles': 'first-principles',
+  '#level-abitur': 'first-principles',
+  '#level-1': 'first-principles',
+  '#level-undergrad': 'undergrad',
+  '#level-2': 'undergrad',
+  '#level-lean': 'lean',
+  '#level-3': 'lean',
+}
+
 const props = defineProps<{
   pageId: string
 }>()
 
+const rootRef = ref<HTMLElement | null>(null)
 const hydrated = ref(false)
 const activeLevel = ref<ZoomLevel>('first-principles')
 const tabRefs = ref<Array<HTMLButtonElement | null>>([])
+let pendingClickTimer: number | null = null
+let pendingScrollRaf1: number | null = null
+let pendingScrollRaf2: number | null = null
 
-function parseLevelFromUrl(): ZoomLevel | null {
-  if (typeof window === 'undefined') {
-    return null
-  }
-  const params = new URLSearchParams(window.location.search)
-  const queryLevel = params.get('level')
-  if (queryLevel === 'first-principles' || queryLevel === 'abitur') {
-    return 'first-principles'
-  }
-  if (queryLevel === 'undergrad' || queryLevel === 'lean') {
-    return queryLevel
-  }
-  const hash = window.location.hash.toLowerCase()
+function parseQueryLevel(search: string): ZoomLevel | null {
+  const params = new URLSearchParams(search)
+  const queryLevel = params.get('level')?.toLowerCase()
   if (
-    hash === '#level-first-principles' ||
-    hash === '#level-abitur' ||
-    hash === '#level-1'
+    queryLevel === 'first-principles' ||
+    queryLevel === 'abitur' ||
+    queryLevel === '1'
   ) {
     return 'first-principles'
   }
-  if (hash === '#level-undergrad' || hash === '#level-2') {
+  if (queryLevel === 'undergrad' || queryLevel === '2') {
     return 'undergrad'
   }
-  if (hash === '#level-lean' || hash === '#level-3') {
+  if (queryLevel === 'lean' || queryLevel === '3') {
     return 'lean'
   }
   return null
+}
+
+function parseLevelAliasHash(rawHash: string): ZoomLevel | null {
+  return LEVEL_ALIAS_HASHES[rawHash.toLowerCase()] ?? null
+}
+
+function decodeHashId(rawHash: string): string | null {
+  if (!rawHash || rawHash === '#') {
+    return null
+  }
+  const stripped = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+  if (!stripped) {
+    return null
+  }
+  try {
+    return decodeURIComponent(stripped)
+  } catch {
+    return stripped
+  }
+}
+
+function findPanelLevelForElement(el: HTMLElement): ZoomLevel | null {
+  const panel = el.closest('.rh-zoom-panel')
+  if (!panel || !rootRef.value?.contains(panel)) {
+    return null
+  }
+  const match = TABS.find((tab) => tab.panelId === panel.id)
+  return match ? match.id : null
+}
+
+function resolveHashTarget(rawHash: string): {
+  level: ZoomLevel | null
+  element: HTMLElement | null
+  isLevelAlias: boolean
+} {
+  const aliasLevel = parseLevelAliasHash(rawHash)
+  if (aliasLevel) {
+    return { level: aliasLevel, element: null, isLevelAlias: true }
+  }
+  const id = decodeHashId(rawHash)
+  if (!id || typeof document === 'undefined') {
+    return { level: null, element: null, isLevelAlias: false }
+  }
+  const el = document.getElementById(id)
+  if (!el) {
+    return { level: null, element: null, isLevelAlias: false }
+  }
+  return {
+    level: findPanelLevelForElement(el),
+    element: el,
+    isLevelAlias: false,
+  }
 }
 
 function syncUrl(level: ZoomLevel) {
@@ -74,10 +130,151 @@ function syncUrl(level: ZoomLevel) {
   }
   const url = new URL(window.location.href)
   url.searchParams.set('level', level)
-  if (url.hash.toLowerCase().startsWith('#level-')) {
+  if (parseLevelAliasHash(url.hash) !== null) {
     url.hash = ''
   }
   window.history.replaceState(window.history.state, '', url.toString())
+}
+
+function cancelPendingScroll() {
+  if (typeof window === 'undefined') {
+    return
+  }
+  if (pendingScrollRaf1 !== null) {
+    window.cancelAnimationFrame(pendingScrollRaf1)
+    pendingScrollRaf1 = null
+  }
+  if (pendingScrollRaf2 !== null) {
+    window.cancelAnimationFrame(pendingScrollRaf2)
+    pendingScrollRaf2 = null
+  }
+}
+
+function scrollToTarget(el: HTMLElement) {
+  el.scrollIntoView({ block: 'start', behavior: 'auto' })
+}
+
+function scheduleScroll(targetEl: HTMLElement) {
+  cancelPendingScroll()
+  void nextTick(() => {
+    scrollToTarget(targetEl)
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      // Run after VitePress's single-rAF router scrollTo, which may have measured
+      // the heading while its tab panel was hidden or before hydration collapsed Level 1.
+      pendingScrollRaf1 = window.requestAnimationFrame(() => {
+        pendingScrollRaf1 = null
+        pendingScrollRaf2 = window.requestAnimationFrame(() => {
+          pendingScrollRaf2 = null
+          scrollToTarget(targetEl)
+        })
+      })
+    }
+  })
+}
+
+function applyLocation(options: {
+  scroll: boolean
+  updateUrl: boolean
+  fallbackToDefault: boolean
+}) {
+  if (typeof window === 'undefined') {
+    return
+  }
+  const queryLevel = parseQueryLevel(window.location.search)
+  const hashTarget = resolveHashTarget(window.location.hash)
+  const resolvedLevel =
+    hashTarget.level ??
+    queryLevel ??
+    (options.fallbackToDefault ? 'first-principles' : null)
+
+  if (resolvedLevel !== null) {
+    activeLevel.value = resolvedLevel
+    if (
+      options.updateUrl &&
+      (hashTarget.isLevelAlias ||
+        (hashTarget.level !== null && queryLevel !== resolvedLevel))
+    ) {
+      syncUrl(resolvedLevel)
+    }
+  }
+
+  if (options.scroll && hashTarget.element && hashTarget.level !== null) {
+    scheduleScroll(hashTarget.element)
+  }
+}
+
+function onHashChange() {
+  applyLocation({
+    scroll: true,
+    updateUrl: true,
+    fallbackToDefault: false,
+  })
+}
+
+function onPopState() {
+  applyLocation({
+    scroll: true,
+    updateUrl: false,
+    fallbackToDefault: true,
+  })
+}
+
+function onDocumentClick(event: MouseEvent) {
+  // Do not bail on event.defaultPrevented: VitePress's capture-phase router
+  // prevents default on same-origin anchor clicks before bubble listeners run.
+  if (
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return
+  }
+  const target = event.target
+  if (!(target instanceof Element)) {
+    return
+  }
+  const anchor = target.closest('a[href*="#"]')
+  if (!(anchor instanceof HTMLAnchorElement) || !anchor.hash) {
+    return
+  }
+  let anchorUrl: URL
+  try {
+    anchorUrl = new URL(anchor.href, window.location.href)
+  } catch {
+    return
+  }
+  if (
+    anchorUrl.origin !== window.location.origin ||
+    anchorUrl.pathname !== window.location.pathname
+  ) {
+    return
+  }
+  const resolved = resolveHashTarget(anchorUrl.hash)
+  if (resolved.level === null) {
+    return
+  }
+  const nextLevel = resolved.level
+  const targetEl = resolved.element
+  activeLevel.value = nextLevel
+  // Defer URL sync until after the browser/router updates window.location.hash
+  // so browser Back/Forward keeps the pre-click history entry intact.
+  if (pendingClickTimer !== null) {
+    window.clearTimeout(pendingClickTimer)
+  }
+  pendingClickTimer = window.setTimeout(() => {
+    pendingClickTimer = null
+    if (
+      parseLevelAliasHash(window.location.hash) !== null ||
+      parseQueryLevel(window.location.search) !== nextLevel
+    ) {
+      syncUrl(nextLevel)
+    }
+    if (targetEl) {
+      scheduleScroll(targetEl)
+    }
+  }, 0)
 }
 
 function setTabRef(el: unknown, index: number) {
@@ -113,16 +310,31 @@ function onTabKeydown(event: KeyboardEvent, currentIndex: number) {
 }
 
 onMounted(() => {
-  const initial = parseLevelFromUrl()
-  if (initial) {
-    activeLevel.value = initial
-  }
   hydrated.value = true
+  applyLocation({
+    scroll: true,
+    updateUrl: true,
+    fallbackToDefault: false,
+  })
+  window.addEventListener('hashchange', onHashChange)
+  window.addEventListener('popstate', onPopState)
+  document.addEventListener('click', onDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  cancelPendingScroll()
+  if (pendingClickTimer !== null) {
+    window.clearTimeout(pendingClickTimer)
+    pendingClickTimer = null
+  }
+  window.removeEventListener('hashchange', onHashChange)
+  window.removeEventListener('popstate', onPopState)
+  document.removeEventListener('click', onDocumentClick)
 })
 </script>
 
 <template>
-  <div class="rh-zoom-tabs" :data-page-id="props.pageId">
+  <div ref="rootRef" class="rh-zoom-tabs" :data-page-id="props.pageId">
     <nav
       v-if="!hydrated"
       class="rh-zoom-static-nav"

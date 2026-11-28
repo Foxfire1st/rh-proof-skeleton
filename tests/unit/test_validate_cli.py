@@ -200,3 +200,38 @@ def test_cli_console_script_runs_on_repo() -> None:
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert "INFO: memory checks skipped (no --memory path)" in completed.stdout
     assert "OK: rh-validate passed (0 findings)." in completed.stdout
+
+
+def test_cli_reports_term_collision_cleanly_without_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = _copy_minimal_repo(tmp_path)
+    mem = tmp_path / "memory"
+    concepts_dir = mem / "docs" / "concepts"
+    concepts_dir.mkdir(parents=True)
+    for slug, term, alias in (("foo", "foo", "x-alias"), ("foos", "bar", "foos")):
+        (concepts_dir / f"{slug}.md").write_text(
+            dedent(
+                f"""\
+                ---
+                slug: {slug}
+                term: {term}
+                aliases:
+                  - {alias}
+                inline_glimpse: Plain description for {slug}.
+                where_analogy_breaks: Boundary note for {slug}.
+                sources:
+                  - title: Ref
+                    citation: Ch. 1
+                    kind: book
+                ---
+                Body for {slug}.
+                """
+            ),
+            encoding="utf-8",
+        )
+
+    code = main(["--repo", str(repo), "--memory", str(mem)])
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "concept-term-collision:concepts/foos.md:0:" in out

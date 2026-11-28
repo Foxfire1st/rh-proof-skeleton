@@ -7,7 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rh_pipeline.lean.parser import UnsupportedLeanFormError, extract_declarations
-from rh_pipeline.models.concepts import ConceptCard, parse_concept_card
+from rh_pipeline.models.concepts import (
+    ConceptCard,
+    concept_variants,
+    find_plain_text_latex,
+    parse_concept_card,
+)
 from rh_pipeline.models.validation import ValidationFinding, sort_findings
 
 
@@ -197,6 +202,64 @@ def _validate_visual_ref(
     )
 
 
+def _validate_plain_text_fields(card: ConceptCard, rel_path: str) -> list[ValidationFinding]:
+    findings: list[ValidationFinding] = []
+    if (matched := find_plain_text_latex(card.term)) is not None:
+        findings.append(
+            ValidationFinding(
+                "concept-plain-text-latex",
+                rel_path,
+                0,
+                f"concept '{card.slug}' term contains raw LaTeX {matched!r}",
+            )
+        )
+    for alias in card.aliases:
+        if (matched := find_plain_text_latex(alias)) is not None:
+            findings.append(
+                ValidationFinding(
+                    "concept-plain-text-latex",
+                    rel_path,
+                    0,
+                    f"concept '{card.slug}' alias {alias!r} contains raw LaTeX {matched!r}",
+                )
+            )
+    if (matched := find_plain_text_latex(card.inline_glimpse)) is not None:
+        findings.append(
+            ValidationFinding(
+                "concept-plain-text-latex",
+                rel_path,
+                0,
+                f"concept '{card.slug}' inline_glimpse contains raw LaTeX {matched!r}",
+            )
+        )
+    return findings
+
+
+def _validate_term_collisions(
+    cards: Mapping[str, ConceptCard], card_paths: Mapping[str, str]
+) -> list[ValidationFinding]:
+    owners: dict[str, list[str]] = {}
+    for slug in sorted(cards):
+        card = cards[slug]
+        for variant in concept_variants(card.term, card.aliases):
+            owners.setdefault(variant, []).append(slug)
+    findings: list[ValidationFinding] = []
+    for variant in sorted(owners):
+        slugs = owners[variant]
+        if len(slugs) > 1:
+            first = slugs[0]
+            for other in slugs[1:]:
+                findings.append(
+                    ValidationFinding(
+                        "concept-term-collision",
+                        card_paths[other],
+                        0,
+                        f"concept '{other}' variant {variant!r} collides with '{first}'",
+                    )
+                )
+    return findings
+
+
 def _validate_card(
     card: ConceptCard,
     rel_path: str,
@@ -214,6 +277,7 @@ def _validate_card(
                 f"concept '{card.slug}' must declare at least one source or lean_anchor",
             )
         )
+    findings.extend(_validate_plain_text_fields(card, rel_path))
     findings.extend(_validate_child_concepts(card, rel_path, cards))
     for anchor in card.lean_anchors:
         anchor_finding = _validate_one_anchor(anchor, rel_path, resolver)
@@ -246,4 +310,5 @@ def validate_concept_corpus(
     docs_roots = (docs_root, docs_root.resolve())
     for slug in sorted(cards):
         findings.extend(_validate_card(cards[slug], card_paths[slug], cards, resolver, docs_roots))
+    findings.extend(_validate_term_collisions(cards, card_paths))
     return cards, sort_findings(findings)

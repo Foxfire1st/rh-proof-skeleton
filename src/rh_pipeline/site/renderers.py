@@ -15,6 +15,7 @@ from rh_pipeline.models.dag import DagDeclarationRef, DagGraph, DagNode, StageDe
 from rh_pipeline.site.markdown_transforms import mask_code_spans, render_page_glossary
 
 __all__ = [
+    "MINIMAP_PATH_CHAR_BUDGET",
     "UPSTREAM_REPO_URL",
     "Backlink",
     "RenderContext",
@@ -33,6 +34,16 @@ UPSTREAM_REPO_URL = "https://github.com/leanprover-community/riemann-hypothesis"
 _STAGE_MARKER_RE = re.compile(r"<!--\s*rh:(lean-node|stage-minimap):([^\s>]+)\s*-->")
 _H1_RE = re.compile(r"^#\s+.+$")
 _BACKTICK_RUN_RE = re.compile(r"`+")
+
+# Deterministic minimap box geometry and text character budgets:
+# inner width = 340 - 24 = 316px; 46 chars at ~6.3px/char (10.5px mono) = ~290px < 316px.
+_MINIMAP_BOX_W = 340
+_MINIMAP_BOX_H = 62
+_MINIMAP_GAP_X = 64
+_MINIMAP_GAP_Y = 22
+_MINIMAP_PAD = 24
+MINIMAP_PATH_CHAR_BUDGET = 46
+_MINIMAP_TITLE_CHAR_BUDGET = 40
 
 
 class SiteBuildError(ValueError):
@@ -195,6 +206,26 @@ def _compute_node_layers(stage_nodes: Sequence[DagNode]) -> dict[str, int]:
     return layers
 
 
+def _middle_ellipsis(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    if max_chars <= 1:
+        return "…"[:max_chars]
+    # Keep a longer tail so upstream filenames remain readable after truncation.
+    keep = max_chars - 1
+    head = keep // 3
+    tail = keep - head
+    return f"{text[:head]}…{text[-tail:]}" if tail else f"{text[:head]}…"
+
+
+def _format_minimap_title(node: DagNode) -> str:
+    badge = " [landmark]" if node.is_landmark else ""
+    if len(node.title) + len(badge) <= _MINIMAP_TITLE_CHAR_BUDGET:
+        return f"{node.title}{badge}"
+    title_budget = max(1, _MINIMAP_TITLE_CHAR_BUDGET - len(badge))
+    return f"{_middle_ellipsis(node.title, title_budget)}{badge}"
+
+
 def _layout_stage_nodes(
     stage_nodes: Sequence[DagNode],
 ) -> tuple[dict[str, tuple[int, int]], int, int]:
@@ -202,7 +233,8 @@ def _layout_stage_nodes(
     columns: dict[int, list[DagNode]] = {}
     for node in stage_nodes:
         columns.setdefault(layers[node.id], []).append(node)
-    box_w, box_h, gap_x, gap_y, pad = 310, 62, 64, 22, 24
+    box_w, box_h = _MINIMAP_BOX_W, _MINIMAP_BOX_H
+    gap_x, gap_y, pad = _MINIMAP_GAP_X, _MINIMAP_GAP_Y, _MINIMAP_PAD
     positions = {
         node.id: (pad + col_idx * (box_w + gap_x), pad + row_idx * (box_h + gap_y))
         for col_idx in sorted(columns)
@@ -214,21 +246,70 @@ def _layout_stage_nodes(
     return positions, width, height
 
 
+def _render_minimap_defs(
+    stage_id: str,
+    stage_nodes: Sequence[DagNode],
+    positions: Mapping[str, tuple[int, int]],
+) -> tuple[str, list[str]]:
+    marker_id = f"rh-minimap-arrow-{stage_id}"
+    clip_lines = [
+        f'    <marker id="{_esc(marker_id)}" viewBox="0 0 10 10" refX="9" refY="5" '
+        'markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
+        '<path d="M 0 1 L 10 5 L 0 9 z" fill="#3f4a56" /></marker>'
+    ]
+    for idx, node in enumerate(stage_nodes):
+        x, y = positions[node.id]
+        clip_id = f"rh-minimap-clip-{stage_id}-{idx}"
+        clip_lines.append(
+            f'    <clipPath id="{_esc(clip_id)}">'
+            f'<rect x="{x + 8}" y="{y + 2}" width="{_MINIMAP_BOX_W - 16}" '
+            f'height="{_MINIMAP_BOX_H - 4}" rx="4" /></clipPath>'
+        )
+    return marker_id, ["  <defs>", *clip_lines, "  </defs>"]
+
+
+def _render_minimap_node(
+    stage_id: str,
+    idx: int,
+    node: DagNode,
+    pos: tuple[int, int],
+    ctx: RenderContext,
+) -> str:
+    x, y = pos
+    svg_href, _ = _node_links(node, ctx)
+    cls = "rh-minimap-node rh-minimap-landmark" if node.is_landmark else "rh-minimap-node"
+    stroke = "#1e40af" if node.is_landmark else "#3f4a56"
+    fill = "#edf4ff" if node.is_landmark else "#faf9f5"
+    clip_id = f"rh-minimap-clip-{stage_id}-{idx}"
+    title_text = _format_minimap_title(node)
+    path_text = _middle_ellipsis(node.upstream_path, MINIMAP_PATH_CHAR_BUDGET)
+    return (
+        f'  <a href="{_esc(svg_href)}"><g class="{cls}" data-node="{_esc(node.id)}">'
+        f"<title>{html.escape(node.upstream_path)}</title>"
+        f'<rect x="{x}" y="{y}" width="{_MINIMAP_BOX_W}" height="{_MINIMAP_BOX_H}" rx="6" '
+        f'fill="{fill}" stroke="{stroke}" stroke-width="2" />'
+        f'<g clip-path="url(#{_esc(clip_id)})">'
+        f'<text x="{x + 12}" y="{y + 25}" fill="#161b22" font-size="12.5" font-weight="600">'
+        f"{html.escape(title_text)}</text>"
+        f'<text x="{x + 12}" y="{y + 46}" fill="#3f4a56" font-size="10.5" '
+        f'font-family="ui-monospace, SFMono-Regular, Menlo, monospace">'
+        f"{html.escape(path_text)}</text></g></g></a>"
+    )
+
+
 def _render_minimap_svg(
     stage: StageDefinition, stage_nodes: Sequence[DagNode], ctx: RenderContext
 ) -> str:
     positions, width, height = _layout_stage_nodes(stage_nodes)
-    box_w, box_h = 310, 62
     t_id, d_id = f"rh-minimap-title-{stage.stage_id}", f"rh-minimap-desc-{stage.stage_id}"
+    marker_id, defs_lines = _render_minimap_defs(stage.stage_id, stage_nodes, positions)
     lines = [
         '<figure class="rh-stage-minimap">',
         f'<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" role="img" '
         f'aria-labelledby="{_esc(t_id)} {_esc(d_id)}" xmlns="http://www.w3.org/2000/svg">',
         f'  <title id="{_esc(t_id)}">{html.escape(stage.title)} dependency mini-map</title>',
         f'  <desc id="{_esc(d_id)}">Proof graph for stage {html.escape(stage.stage_id)}.</desc>',
-        '  <defs><marker id="rh-minimap-arrow" viewBox="0 0 10 10" refX="9" refY="5" '
-        'markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
-        '<path d="M 0 1 L 10 5 L 0 9 z" fill="#3f4a56" /></marker></defs>',
+        *defs_lines,
     ]
     for node in stage_nodes:
         x2, y2 = positions[node.id]
@@ -236,27 +317,12 @@ def _render_minimap_svg(
             if dep_id in positions:
                 x1, y1 = positions[dep_id]
                 lines.append(
-                    f'  <line class="rh-minimap-edge" x1="{x1 + box_w}" y1="{y1 + box_h // 2}" '
-                    f'x2="{x2}" y2="{y2 + box_h // 2}" stroke="#3f4a56" stroke-width="2" '
-                    'marker-end="url(#rh-minimap-arrow)" />'
+                    f'  <line class="rh-minimap-edge" x1="{x1 + _MINIMAP_BOX_W}" '
+                    f'y1="{y1 + _MINIMAP_BOX_H // 2}" x2="{x2}" y2="{y2 + _MINIMAP_BOX_H // 2}" '
+                    f'stroke="#3f4a56" stroke-width="2" marker-end="url(#{_esc(marker_id)})" />'
                 )
-    for node in stage_nodes:
-        x, y = positions[node.id]
-        svg_href, _ = _node_links(node, ctx)
-        cls = "rh-minimap-node rh-minimap-landmark" if node.is_landmark else "rh-minimap-node"
-        stroke = "#1e40af" if node.is_landmark else "#3f4a56"
-        fill = "#edf4ff" if node.is_landmark else "#faf9f5"
-        badge = " [landmark]" if node.is_landmark else ""
-        lines.append(
-            f'  <a href="{_esc(svg_href)}"><g class="{cls}" data-node="{_esc(node.id)}">'
-            f'<rect x="{x}" y="{y}" width="{box_w}" height="{box_h}" rx="6" '
-            f'fill="{fill}" stroke="{stroke}" stroke-width="2" />'
-            f'<text x="{x + 12}" y="{y + 25}" fill="#161b22" font-size="12.5" font-weight="600">'
-            f"{html.escape(node.title)}{badge}</text>"
-            f'<text x="{x + 12}" y="{y + 46}" fill="#3f4a56" font-size="10.5" '
-            f'font-family="ui-monospace, SFMono-Regular, Menlo, monospace">'
-            f"{html.escape(node.upstream_path)}</text></g></a>"
-        )
+    for idx, node in enumerate(stage_nodes):
+        lines.append(_render_minimap_node(stage.stage_id, idx, node, positions[node.id], ctx))
     lines.append("</svg>")
     lines.append(
         f"<figcaption>{html.escape(stage.title)}: solid blue border marks landmark theorem "

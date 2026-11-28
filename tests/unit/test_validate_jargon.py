@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from rh_pipeline.models.concepts import ConceptCard
 from rh_pipeline.models.validation import ValidationFinding
 from rh_pipeline.validate.jargon import check_page_jargon, validate_explainer_docs
@@ -376,3 +378,34 @@ def test_validate_explainer_docs_scans_strictly_concepts_and_stages(tmp_path: Pa
 
 def test_validate_explainer_docs_handles_missing_directories(tmp_path: Path) -> None:
     assert validate_explainer_docs(tmp_path / "empty_docs", registry=_registry()) == ()
+
+
+def test_term_display_latex_gate_negative_and_positive_cases() -> None:
+    markdown = (
+        "## Level 1 — First-Principles\n"
+        "Reveal {{concept:analytic|locally smooth power series}}.\n"
+        "Bad inline math {{term:analytic|$p$-adic}}.\n"
+        "Bad display math {{term:analytic|$$x$$}}.\n"
+        "Bad paren math {{term:analytic|\\(x\\)}} and {{term:analytic|\\mathrm{GL}}}.\n"
+        "Good currency {{term:analytic|costs $5}} and escaped {{term:analytic|price \\$5}}.\n"
+        "\n"
+        "## Level 2 — Undergrad Bridge\n"
+        "Ordinary $p$-adic math is fine, but {{term:analytic|$p$-adic}} is still caught.\n"
+    )
+    findings = check_page_jargon(markdown, rel_path="stages/02/latex.md", registry=_registry())
+    assert [(f.rule, f.line) for f in findings] == [
+        ("term-display-latex", 3),
+        ("term-display-latex", 4),
+        ("term-display-latex", 5),
+        ("term-display-latex", 5),
+        ("term-display-latex", 9),
+    ]
+
+
+def test_check_page_jargon_rejects_colliding_registry_without_shadowing() -> None:
+    colliding = {
+        "alpha": _card("alpha", "foo"),
+        "beta": _card("beta", "bar", aliases=("foos",)),
+    }
+    with pytest.raises(ValueError, match="concept variant collision on 'foos'"):
+        check_page_jargon("## Level 1 — Collision\nBody.\n", rel_path="s.md", registry=colliding)

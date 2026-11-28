@@ -7,6 +7,12 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from rh_pipeline.markdown_mask import (
+    find_directive_close,
+    find_math_end,
+    mask_code_spans,
+    mask_fenced_code,
+)
 from rh_pipeline.models.concepts import ConceptCard
 
 __all__ = [
@@ -19,12 +25,6 @@ __all__ = [
     "split_zoom_levels",
 ]
 
-_FENCE_OPEN_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
-_FENCE_CLOSE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})[ \t]*$")
-_BACKTICK_RUN_RE = re.compile(r"`+")
-_DISPLAY_MATH_END_RE = re.compile(r"\\.|(\$\$)", re.DOTALL)
-_INLINE_MATH_END_RE = re.compile(r"\\.|(\n\n|\$)", re.DOTALL)
-_DIR_TOK_RE = re.compile(r"\\.|(\$|[{}])", re.DOTALL)
 _SCAN_TOK_RE = re.compile(r"\\.|(\$|{{concept:|{{term:)", re.DOTALL)
 _H2_RE = re.compile(r"^##\s+")
 _LEVEL1_H2_RE = re.compile(r"^##\s+Level\s+1\b")
@@ -64,83 +64,6 @@ def normalize_base_url(base_url: str) -> str:
     if any(part in {".", ".."} for part in parts):
         raise SiteDirectiveError(f"base_url must not contain path traversal: {base_url!r}")
     return "/" if not parts else f"/{'/'.join(parts)}/"
-
-
-def _blank_span(buf: list[str], start: int, end: int) -> None:
-    buf[start:end] = ["\n" if ch == "\n" else " " for ch in buf[start:end]]
-
-
-def _mask_fenced_code(text: str) -> str:
-    out: list[str] = []
-    fence_char, fence_len = "", 0
-    for line in text.split("\n"):
-        if fence_char:
-            out.append(" " * len(line))
-            cm = _FENCE_CLOSE_RE.match(line)
-            if cm and cm.group(1)[0] == fence_char and len(cm.group(1)) >= fence_len:
-                fence_char, fence_len = "", 0
-            continue
-        if (m := _FENCE_OPEN_RE.match(line)) and (m.group(1)[0] == "~" or "`" not in m.group(2)):
-            fence_char, fence_len = m.group(1)[0], len(m.group(1))
-            out.append(" " * len(line))
-        else:
-            out.append(line)
-    return "\n".join(out)
-
-
-def _mask_inline_code(text: str) -> str:
-    buf, runs, idx = list(text), list(_BACKTICK_RUN_RE.finditer(text)), 0
-    while idx < len(runs):
-        opener = runs[idx]
-        count = opener.end() - opener.start()
-        for j in range(idx + 1, len(runs)):
-            if "\n\n" in text[opener.end() : runs[j].start()]:
-                break
-            if runs[j].end() - runs[j].start() == count:
-                _blank_span(buf, opener.start(), runs[j].end())
-                idx = j
-                break
-        idx += 1
-    return "".join(buf)
-
-
-def mask_fenced_code(text: str) -> str:
-    """Return a same-length copy of `text` with fenced code blocks replaced by spaces."""
-    return _mask_fenced_code(text)
-
-
-def mask_code_spans(text: str) -> str:
-    """Return a same-length copy of `text` with fenced and inline code replaced by spaces."""
-    return _mask_inline_code(_mask_fenced_code(text))
-
-
-def _find_math_end(text: str, start: int) -> int | None:
-    is_display = text.startswith("$$", start)
-    pattern = _DISPLAY_MATH_END_RE if is_display else _INLINE_MATH_END_RE
-    close = "$$" if is_display else "$"
-    for match in pattern.finditer(text, start + len(close)):
-        if match.group(1) == close:
-            return match.end()
-        if match.group(1) == "\n\n":
-            return None
-    return None
-
-
-def _find_directive_close(text: str, start: int) -> int | None:
-    pos, brace_depth = start, 0
-    while (match := _DIR_TOK_RE.search(text, pos)) is not None:
-        tok = match.group(1)
-        if tok == "$":
-            pos = _find_math_end(text, match.start()) or match.end()
-        elif tok == "{":
-            brace_depth, pos = brace_depth + 1, match.end()
-        elif tok == "}" and brace_depth > 0:
-            brace_depth, pos = brace_depth - 1, match.end()
-        elif tok == "}" and text.startswith("}}", match.start()):
-            return match.start()
-        else:
-            pos = match.end()
-    return None
 
 
 def _esc(value: str) -> str:
@@ -203,12 +126,12 @@ def _expand_segment(normalized: str, code_masked: str, state: _ExpandState) -> s
     while (match := _SCAN_TOK_RE.search(code_masked, pos)) is not None:
         tok = match.group(1)
         if tok == "$":
-            pos = _find_math_end(code_masked, match.start()) or match.end()
+            pos = find_math_end(code_masked, match.start()) or match.end()
             continue
         if tok not in ("{{concept:", "{{term:"):
             pos = match.end()
             continue
-        close_start = _find_directive_close(code_masked, match.end())
+        close_start = find_directive_close(code_masked, match.end())
         if close_start is None:
             kind = "concept" if tok == "{{concept:" else "term"
             raise SiteDirectiveError(f"Unclosed {kind} directive")
@@ -262,7 +185,7 @@ def split_zoom_levels(markdown: str, *, page_id: str) -> str:
     """Wrap ordered Level 1 / Level 2 / Level 3 sections in `<ZoomTabs>` when all three exist."""
     normalized = markdown.replace("\r\n", "\n").replace("\r", "\n")
     lines = normalized.split("\n")
-    indices = _locate_zoom_indices(_mask_fenced_code(normalized).split("\n"))
+    indices = _locate_zoom_indices(mask_fenced_code(normalized).split("\n"))
     if indices is None:
         return markdown
     idx1, idx2, idx3, end3 = indices
